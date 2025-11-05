@@ -64,65 +64,68 @@ void display() {
   glRasterPos2f(10, 40);
   Print("Controls:");
   
-  glRasterPos2f(10, 55);
-  Print("WASD / Arrow Keys - Move");
+  glRasterPos2f(10, 60);
+  Print("Movement:");
   
-  glRasterPos2f(10, 70);
-  Print("Q/E - Strafe");
+  glRasterPos2f(10, 75);
+  Print("  WASD / Arrow Keys - Move & Turn");
   
-  glRasterPos2f(10, 85);
-  Print("Z/X - Look Up/Down");
+  glRasterPos2f(10, 90);
+  Print("  Q/E - Strafe Left/Right");
   
-  glRasterPos2f(10, 100);
-  Print("T - Toggle time auto-advance");
+  glRasterPos2f(10, 105);
+  Print("  Z/X - Look Up/Down");
   
-  glRasterPos2f(10, 115);
-  Print("N - Increase noise/dither");
+  glRasterPos2f(10, 125);
+  Print("Atmosphere:");
   
-  glRasterPos2f(10, 130);
-  Print("M - Decrease noise/dither");
+  glRasterPos2f(10, 140);
+  Print("  T - Toggle time auto-advance");
   
-  glRasterPos2f(10, 145);
-  Print("F - Increase flicker");
+  glRasterPos2f(10, 155);
+  Print("  N/M - Increase/Decrease noise");
   
-  glRasterPos2f(10, 160);
-  Print("G - Decrease flicker");
+  glRasterPos2f(10, 170);
+  Print("  F/G - Increase/Decrease flicker");
   
-  glRasterPos2f(10, 175);
-  Print("D - Toggle dither");
-  
-  glRasterPos2f(10, 190);
-  Print("R - Reset position");
+  glRasterPos2f(10, 185);
+  Print("  Shift+D - Toggle dither effect");
   
   glRasterPos2f(10, 205);
-  Print("ESC - Exit");
+  Print("Other:");
   
-  glRasterPos2f(10, 230);
+  glRasterPos2f(10, 220);
+  Print("  R - Reset position");
+  
+  glRasterPos2f(10, 235);
+  Print("  ESC - Exit");
+  
+  glRasterPos2f(10, 260);
   std::ostringstream pos;
   pos << std::fixed << std::setprecision(1);
   pos << "Position: (" << playerX << ", " << playerZ << ")";
   Print(pos.str());
   
-  glRasterPos2f(10, 245);
+  glRasterPos2f(10, 275);
   std::ostringstream angle;
   angle << std::fixed << std::setprecision(0);
   angle << "Facing: " << playerAngle << " degrees";
   Print(angle.str());
   
-  glRasterPos2f(10, 260);
+  glRasterPos2f(10, 290);
   std::ostringstream time;
   time << std::fixed << std::setprecision(1);
   time << "Time: " << timeOfDay << ":00 (Night)";
   Print(time.str());
   
-  glRasterPos2f(10, 275);
+  glRasterPos2f(10, 305);
   std::ostringstream effects;
   effects << "Dither: " << (ditherEnabled ? "ON" : "OFF") 
           << " | Noise: " << (int)(noiseAmount * 100) << "%"
           << " | Flicker: " << (int)(flickerIntensity * 100) << "%";
   Print(effects.str());
   
-  glRasterPos2f(10, 290);
+  glRasterPos2f(10, 320);
   std::ostringstream objects;
   objects << "Scene: " << buildings.size() << " buildings, " 
           << streetLamps.size() << " lamps, "
@@ -224,11 +227,12 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
       break;
       
     case 'd':
+      playerAngle += turnSpeed;
+      if (playerAngle >= 360) playerAngle -= 360.0;
+      break;
+      
     case 'D':
-      if (ch == 'd' || ch == 'D') {
-        playerAngle += turnSpeed;
-        if (playerAngle >= 360) playerAngle -= 360.0;
-      }
+      ditherEnabled = !ditherEnabled;
       break;
       
     case 'q':
@@ -283,11 +287,11 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
       flickerIntensity -= 0.1;
       if (flickerIntensity < 0.0) flickerIntensity = 0.0;
       break;
-  }
-  
-  // Special handling for 'D' key to toggle dither
-  if (ch == 'D') {
-    ditherEnabled = !ditherEnabled;
+      
+    case 'v':
+    case 'V':
+      // Toggle vertical sync / vsync placeholder
+      break;
   }
   
   glutPostRedisplay();
