@@ -48,26 +48,62 @@ void generateBuildingBlock(CityBlock& block) {
   }
 }
 
-// Generate a park block with trees and benches
+// Generate a park block with trees, benches, and atmospheric lighting
 void generateParkBlock(CityBlock& block) {
-  // Generate 8-15 trees scattered through the park
-  int numTrees = 8 + (rand() % 8);
+  // Park layout: create a more organized feeling with clusters and pathways
   
-  for (int i = 0; i < numTrees; i++) {
+  // Define park areas - center open space with tree clusters around edges
+  double parkCenterX = block.worldX + blockSize / 2.0;
+  double parkCenterZ = block.worldZ + blockSize / 2.0;
+  
+  // Generate tree clusters pushed to the edges, leaving center clear
+  int numTreeClusters = 4; // Always 4 clusters - one near each corner/edge
+  
+  for (int cluster = 0; cluster < numTreeClusters; cluster++) {
+    // Force clusters to specific edge/corner positions
+    double clusterX, clusterZ;
+    double edgeDistance = blockSize * 0.35; // Distance from center to cluster
+    
+    switch(cluster) {
+      case 0: // North-East corner area
+        clusterX = parkCenterX + edgeDistance;
+        clusterZ = parkCenterZ - edgeDistance;
+        break;
+      case 1: // South-East corner area
+        clusterX = parkCenterX + edgeDistance;
+        clusterZ = parkCenterZ + edgeDistance;
+        break;
+      case 2: // South-West corner area
+        clusterX = parkCenterX - edgeDistance;
+        clusterZ = parkCenterZ + edgeDistance;
+        break;
+      case 3: // North-West corner area
+        clusterX = parkCenterX - edgeDistance;
+        clusterZ = parkCenterZ - edgeDistance;
+        break;
+      default:
+        clusterX = parkCenterX;
+        clusterZ = parkCenterZ;
+        break;
+    }
+    
+    // ONE larger, more detailed tree per cluster
     Tree tree;
     
-    // Position within block with margins
-    double marginX = blockSize * 0.2;
-    double marginZ = blockSize * 0.2;
-    double usableWidth = blockSize - (2 * marginX);
-    double usableDepth = blockSize - (2 * marginZ);
+    // Position at cluster center with slight variation
+    tree.x = clusterX + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    tree.z = clusterZ + (rand() / double(RAND_MAX) - 0.5) * 2.0;
     
-    tree.x = block.worldX + marginX + (rand() / double(RAND_MAX)) * usableWidth;
-    tree.z = block.worldZ + marginZ + (rand() / double(RAND_MAX)) * usableDepth;
+    // Ensure tree stays within park bounds with margin
+    double margin = 4.0;
+    if (tree.x < block.worldX + margin) tree.x = block.worldX + margin;
+    if (tree.x > block.worldX + blockSize - margin) tree.x = block.worldX + blockSize - margin;
+    if (tree.z < block.worldZ + margin) tree.z = block.worldZ + margin;
+    if (tree.z > block.worldZ + blockSize - margin) tree.z = block.worldZ + blockSize - margin;
     
-    // Tree properties
-    tree.height = 4.0 + (rand() / double(RAND_MAX)) * 5.0;
-    tree.scale = 0.7f + (rand() / float(RAND_MAX)) * 0.6f;
+    // Tree properties - larger and more prominent as single specimens
+    tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;  // Taller: 6-12 units
+    tree.scale = 1.2f + (rand() / float(RAND_MAX)) * 0.8f;  // Bigger: 1.2-2.0 scale
     
     // Very dark, dead-looking trees for horror aesthetic
     tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
@@ -82,22 +118,70 @@ void generateParkBlock(CityBlock& block) {
     trees.push_back(tree);
   }
   
-  // Generate 3-6 benches
-  int numBenches = 3 + (rand() % 4);
+  // Generate benches very close to edges, facing center of park
+  int numBenches = 6 + (rand() % 3); // 6-8 benches per park for perimeter coverage
   
   for (int i = 0; i < numBenches; i++) {
     Bench bench;
     
-    double marginX = blockSize * 0.25;
-    double marginZ = blockSize * 0.25;
-    double usableWidth = blockSize - (2 * marginX);
-    double usableDepth = blockSize - (2 * marginZ);
+    // Place benches very close to the edges
+    int placement = rand() % 4;
+    double closeMargin = blockSize * 0.12; // Very close to edge
+    double alongEdge = blockSize * 0.2 + (rand() / double(RAND_MAX)) * (blockSize * 0.6);
     
-    bench.x = block.worldX + marginX + (rand() / double(RAND_MAX)) * usableWidth;
-    bench.z = block.worldZ + marginZ + (rand() / double(RAND_MAX)) * usableDepth;
-    bench.rotation = (rand() % 4) * 90.0;
+    switch(placement) {
+      case 0: // North edge, facing south into park
+        bench.x = block.worldX + alongEdge;
+        bench.z = block.worldZ + closeMargin;
+        bench.rotation = 0.0;
+        break;
+      case 1: // South edge, facing north into park
+        bench.x = block.worldX + alongEdge;
+        bench.z = block.worldZ + blockSize - closeMargin;
+        bench.rotation = 180.0;
+        break;
+      case 2: // East edge, facing west into park
+        bench.x = block.worldX + blockSize - closeMargin;
+        bench.z = block.worldZ + alongEdge;
+        bench.rotation = 270.0;
+        break;
+      case 3: // West edge, facing east into park
+        bench.x = block.worldX + closeMargin;
+        bench.z = block.worldZ + alongEdge;
+        bench.rotation = 90.0;
+        break;
+    }
     
     benches.push_back(bench);
+  }
+  
+  // Add atmospheric park lighting - ring around the center area
+  int numParkLights = 6; // Fixed number for consistent ring pattern
+  
+  for (int i = 0; i < numParkLights; i++) {
+    StreetLamp lamp;
+    
+    // Position lights in a ring around the center (hexagonal-ish pattern)
+    double angle = (i / (double)numParkLights) * 2.0 * M_PI;
+    double ringRadius = blockSize * 0.28; // Distance from center
+    
+    lamp.x = parkCenterX + cos(angle) * ringRadius;
+    lamp.z = parkCenterZ + sin(angle) * ringRadius;
+    
+    // Add small random offset for less perfect positioning
+    lamp.x += (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    lamp.z += (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    
+    // Shorter, more atmospheric park lights
+    lamp.height = 3.0 + (rand() / double(RAND_MAX)) * 1.0;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    
+    // Higher chance of working lights in parks (safer feeling)
+    lamp.isWorking = (rand() % 100) < 75; // 75% working (vs 65% on streets)
+    
+    // Track this lamp in the block
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
   }
 }
 
@@ -145,7 +229,8 @@ void initializeCityGrid() {
 
 // Generate street lamps along roads between blocks
 void generateRoadLights() {
-  streetLamps.clear();
+  // Note: Park lights are now generated within generateParkBlock()
+  // This function only handles street/road lighting
   
   int halfGrid = cityGridSize / 2;
   int totalBlockSize = blockSize + roadWidth;
@@ -167,7 +252,7 @@ void generateRoadLights() {
           lamp.z = blockWorldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
           lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
           lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-          lamp.isWorking = (rand() % 100) < 65; // 35% are broken for atmosphere
+          lamp.isWorking = (rand() % 100) < 65; // 65% are working, 35% broken for atmosphere
           
           streetLamps.push_back(lamp);
         }
@@ -199,7 +284,7 @@ void generateRoadLights() {
     }
   }
   
-  std::cout << "Generated " << streetLamps.size() << " street lamps along roads" << std::endl;
+  std::cout << "Generated " << streetLamps.size() << " total lamps (streets + parks)" << std::endl;
 }
 
 // Initialize ambient objects (trash, debris, etc.)

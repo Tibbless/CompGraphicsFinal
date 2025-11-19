@@ -9,7 +9,7 @@ void display() {
   // Draw sky background first
   drawSky();
   
-  // First-person camera
+  // First-person camera - SET UP CAMERA FIRST
   double lookX = playerX + sin(playerAngle * M_PI / 180.0) * cos(playerPitch * M_PI / 180.0);
   double lookY = playerY + sin(playerPitch * M_PI / 180.0);
   double lookZ = playerZ - cos(playerAngle * M_PI / 180.0) * cos(playerPitch * M_PI / 180.0);
@@ -18,9 +18,9 @@ void display() {
             lookX, lookY, lookZ,
             0.0, 1.0, 0.0);
   
+  // CRITICAL: Update lighting AFTER camera is set up
+  // This ensures light positions are in the correct coordinate space
   updateLighting();
-  
-  // Setup dynamic street lamp lighting (find closest lamps to player)
   setupStreetLampLights();
   
   // Draw world

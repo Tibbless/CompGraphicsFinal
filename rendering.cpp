@@ -401,13 +401,13 @@ void drawSky() {
   // Draw full-screen gradient quad
   glBegin(GL_QUADS);
   
-  // Top (darker)
-  glColor3f(0.02f, 0.02f, 0.05f);
+  // Top (very dark to match thick fog)
+  glColor3f(0.02f, 0.02f, 0.04f);
   glVertex2f(-1.0f, 1.0f);
   glVertex2f(1.0f, 1.0f);
   
-  // Bottom (slightly lighter)
-  glColor3f(0.08f, 0.06f, 0.12f);
+  // Bottom (matches fog color for seamless blend)
+  glColor3f(0.05f, 0.04f, 0.08f);
   glVertex2f(1.0f, -1.0f);
   glVertex2f(-1.0f, -1.0f);
   
@@ -479,300 +479,151 @@ void applyDitherEffect() {
   glEnable(GL_LIGHTING);
 }
 
+// Helper function to draw a rounded egg-shaped canopy cluster for trees
+void drawRoundedCanopyCluster(float baseHeight, float topHeight, float maxRadius, int segments) {
+  glBegin(GL_TRIANGLES);
+  
+  float centerHeight = (baseHeight + topHeight) / 2.0f;
+  float height = topHeight - baseHeight;
+  
+  // Create multiple horizontal rings to form rounded shape
+  int numRings = 5;
+  
+  for (int ring = 0; ring < numRings; ring++) {
+    float t1 = ring / (float)numRings;
+    float t2 = (ring + 1) / (float)numRings;
+    
+    // Calculate heights
+    float h1 = baseHeight + t1 * height;
+    float h2 = baseHeight + t2 * height;
+    
+    // Calculate radius using a rounded curve (wider in middle, narrow at ends)
+    // Using sine curve for egg shape: wide in middle, tapered at top and bottom
+    float radius1 = maxRadius * sin(t1 * M_PI);  // 0 at bottom, max at middle, 0 at top
+    float radius2 = maxRadius * sin(t2 * M_PI);
+    
+    // Add slight asymmetry
+    for (int i = 0; i < segments; i++) {
+      float angle1 = (i / (float)segments) * 2.0f * M_PI;
+      float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
+      
+      // Slight variation for organic look
+      float variation1 = 0.95f + (i % 3) * 0.025f;
+      float variation2 = 0.95f + ((i + 1) % 3) * 0.025f;
+      
+      // Ring 1 points
+      float x1_r1 = cos(angle1) * radius1 * variation1;
+      float z1_r1 = sin(angle1) * radius1 * variation1;
+      float x2_r1 = cos(angle2) * radius1 * variation2;
+      float z2_r1 = sin(angle2) * radius1 * variation2;
+      
+      // Ring 2 points
+      float x1_r2 = cos(angle1) * radius2 * variation1;
+      float z1_r2 = sin(angle1) * radius2 * variation1;
+      float x2_r2 = cos(angle2) * radius2 * variation2;
+      float z2_r2 = sin(angle2) * radius2 * variation2;
+      
+      // Connect rings with triangles
+      if (radius1 > 0.01f && radius2 > 0.01f) {
+        // Both rings have radius - make quads (2 triangles)
+        glVertex3f(x1_r1, h1, z1_r1);
+        glVertex3f(x2_r1, h1, z2_r1);
+        glVertex3f(x1_r2, h2, z1_r2);
+        
+        glVertex3f(x2_r1, h1, z2_r1);
+        glVertex3f(x2_r2, h2, z2_r2);
+        glVertex3f(x1_r2, h2, z1_r2);
+      } else if (radius1 > 0.01f) {
+        // Bottom ring only - converge to point at top
+        glVertex3f(x1_r1, h1, z1_r1);
+        glVertex3f(x2_r1, h1, z2_r1);
+        glVertex3f(0.0f, h2, 0.0f);
+      } else if (radius2 > 0.01f) {
+        // Top ring only - converge from point at bottom
+        glVertex3f(0.0f, h1, 0.0f);
+        glVertex3f(x1_r2, h2, z1_r2);
+        glVertex3f(x2_r2, h2, z2_r2);
+      }
+    }
+  }
+  
+  glEnd();
+}
+
 void drawTree(const Tree& tree) {
   glPushMatrix();
   glTranslated(tree.x, 0.0, tree.z);
   glScaled(tree.scale, tree.scale, tree.scale);
   
-  // Draw trunk - fully enclosed rectangular prism
+  // Draw main trunk - simple tapered cylinder
   glColor3f(tree.trunkR, tree.trunkG, tree.trunkB);
   glBegin(GL_QUADS);
   
-  float trunkHeight = tree.height * 0.5f;
+  float trunkHeight = tree.height * 0.45f;
+  float trunkBaseWidth = 0.5f;
+  float trunkTopWidth = 0.35f;
   
-  // Front face
-  glVertex3f(-0.3f, 0.0f, 0.3f);
-  glVertex3f(0.3f, 0.0f, 0.3f);
-  glVertex3f(0.3f, trunkHeight, 0.3f);
-  glVertex3f(-0.3f, trunkHeight, 0.3f);
-  
-  // Back face
-  glVertex3f(0.3f, 0.0f, -0.3f);
-  glVertex3f(-0.3f, 0.0f, -0.3f);
-  glVertex3f(-0.3f, trunkHeight, -0.3f);
-  glVertex3f(0.3f, trunkHeight, -0.3f);
-  
-  // Right face
-  glVertex3f(0.3f, 0.0f, 0.3f);
-  glVertex3f(0.3f, 0.0f, -0.3f);
-  glVertex3f(0.3f, trunkHeight, -0.3f);
-  glVertex3f(0.3f, trunkHeight, 0.3f);
-  
-  // Left face
-  glVertex3f(-0.3f, 0.0f, -0.3f);
-  glVertex3f(-0.3f, 0.0f, 0.3f);
-  glVertex3f(-0.3f, trunkHeight, 0.3f);
-  glVertex3f(-0.3f, trunkHeight, -0.3f);
+  // 8 sides for trunk
+  for (int i = 0; i < 8; i++) {
+    float angle1 = (i / 8.0f) * 2.0f * M_PI;
+    float angle2 = ((i + 1) / 8.0f) * 2.0f * M_PI;
+    
+    float x1_base = cos(angle1) * trunkBaseWidth;
+    float z1_base = sin(angle1) * trunkBaseWidth;
+    float x2_base = cos(angle2) * trunkBaseWidth;
+    float z2_base = sin(angle2) * trunkBaseWidth;
+    
+    float x1_top = cos(angle1) * trunkTopWidth;
+    float z1_top = sin(angle1) * trunkTopWidth;
+    float x2_top = cos(angle2) * trunkTopWidth;
+    float z2_top = sin(angle2) * trunkTopWidth;
+    
+    // Trunk face
+    glVertex3f(x1_base, 0.0f, z1_base);
+    glVertex3f(x2_base, 0.0f, z2_base);
+    glVertex3f(x2_top, trunkHeight, z2_top);
+    glVertex3f(x1_top, trunkHeight, z1_top);
+  }
   
   glEnd();
   
-  // Draw more rounded, spherical foliage - multiple layers creating sphere-like shape
+  // Draw foliage as separate rounded clusters (eggs/balls) with trunk showing between
+  float gap = 0.8f; // Gap between clusters to show trunk
+  
+  // Bottom cluster - large rounded ball
+  float bottomBase = tree.height * 0.25f;
+  float bottomTop = tree.height * 0.45f;
   glColor3f(tree.leavesR, tree.leavesG, tree.leavesB);
+  drawRoundedCanopyCluster(bottomBase, bottomTop, 2.0f, 8);
   
-  float leafBase = tree.height * 0.35f;
-  float leafLow = tree.height * 0.5f;
-  float leafMid = tree.height * 0.7f;
-  float leafHigh = tree.height * 0.85f;
-  float leafTop = tree.height * 1.0f;
+  // Middle cluster - medium rounded ball (with gap above bottom)
+  float middleBase = tree.height * 0.5f;
+  float middleTop = tree.height * 0.68f;
+  glColor3f(tree.leavesR * 0.95f, tree.leavesG * 0.95f, tree.leavesB * 0.95f);
+  drawRoundedCanopyCluster(middleBase, middleTop, 1.4f, 8);
   
-  // Radius decreases as we go up for rounded shape
-  float radiusBottom = 2.2f;
-  float radiusLow = 2.0f;
-  float radiusMid = 1.6f;
-  float radiusHigh = 1.0f;
-  
-  glBegin(GL_TRIANGLES);
-  
-  // BOTTOM SECTION - octagonal bottom face (not flat underneath)
-  // Bottom pyramid pointing down from leafBase
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f); // Point below
-  glVertex3f(radiusBottom, leafBase, 0.0f);
-  glVertex3f(radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(0.0f, leafBase, radiusBottom);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(0.0f, leafBase, radiusBottom);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(-radiusBottom, leafBase, 0.0f);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(-radiusBottom, leafBase, 0.0f);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(0.0f, leafBase, -radiusBottom);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(0.0f, leafBase, -radiusBottom);
-  glVertex3f(radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  
-  glVertex3f(0.0f, leafBase - 0.5f, 0.0f);
-  glVertex3f(radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(radiusBottom, leafBase, 0.0f);
-  
-  // LOWER RING - base to low (8 faces for roundness)
-  // Front-right
-  glVertex3f(radiusBottom, leafBase, 0.0f);
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  glVertex3f(radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  
-  glVertex3f(radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  
-  // Right
-  glVertex3f(radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(0.0f, leafBase, radiusBottom);
-  
-  glVertex3f(0.0f, leafBase, radiusBottom);
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(0.0f, leafLow, radiusLow);
-  
-  // Back-right
-  glVertex3f(0.0f, leafBase, radiusBottom);
-  glVertex3f(0.0f, leafLow, radiusLow);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  
-  glVertex3f(-radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(0.0f, leafLow, radiusLow);
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  
-  // Back
-  glVertex3f(-radiusBottom * 0.7f, leafBase, radiusBottom * 0.7f);
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(-radiusBottom, leafBase, 0.0f);
-  
-  glVertex3f(-radiusBottom, leafBase, 0.0f);
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  
-  // Back-left
-  glVertex3f(-radiusBottom, leafBase, 0.0f);
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  glVertex3f(-radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  
-  glVertex3f(-radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  
-  // Left
-  glVertex3f(-radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(0.0f, leafBase, -radiusBottom);
-  
-  glVertex3f(0.0f, leafBase, -radiusBottom);
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  
-  // Front-left
-  glVertex3f(0.0f, leafBase, -radiusBottom);
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  glVertex3f(radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  
-  glVertex3f(radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  
-  // Front
-  glVertex3f(radiusBottom * 0.7f, leafBase, -radiusBottom * 0.7f);
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(radiusBottom, leafBase, 0.0f);
-  
-  glVertex3f(radiusBottom, leafBase, 0.0f);
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  
-  glEnd();
-  
-  // Continue with simpler geometry for middle and top
+  // Top cluster - small rounded ball at top
+  float topBase = tree.height * 0.73f;
+  float topTop = tree.height * 0.95f;
   glColor3f(tree.leavesR * 0.9f, tree.leavesG * 0.9f, tree.leavesB * 0.9f);
+  drawRoundedCanopyCluster(topBase, topTop, 0.9f, 6);
+  
+  // Add a few simple branch stubs
+  glColor3f(tree.trunkR * 1.2f, tree.trunkG * 1.2f, tree.trunkB * 1.2f);
   glBegin(GL_TRIANGLES);
   
-  // MIDDLE RING - 8 sided
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  glVertex3f(radiusMid, leafMid, 0.0f);
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
+  float branchHeight = tree.height * 0.35f;
   
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(radiusMid, leafMid, 0.0f);
-  glVertex3f(radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  
-  glVertex3f(radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(0.0f, leafLow, radiusLow);
-  
-  glVertex3f(0.0f, leafLow, radiusLow);
-  glVertex3f(radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(0.0f, leafMid, radiusMid);
-  
-  glVertex3f(0.0f, leafLow, radiusLow);
-  glVertex3f(0.0f, leafMid, radiusMid);
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(0.0f, leafMid, radiusMid);
-  glVertex3f(-radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  
-  glVertex3f(-radiusLow * 0.7f, leafLow, radiusLow * 0.7f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(-radiusMid, leafMid, 0.0f);
-  
-  glVertex3f(-radiusLow, leafLow, 0.0f);
-  glVertex3f(-radiusMid, leafMid, 0.0f);
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(-radiusMid, leafMid, 0.0f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  
-  glVertex3f(-radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  glVertex3f(-radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(0.0f, leafMid, -radiusMid);
-  
-  glVertex3f(0.0f, leafLow, -radiusLow);
-  glVertex3f(0.0f, leafMid, -radiusMid);
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(0.0f, leafMid, -radiusMid);
-  glVertex3f(radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  
-  glVertex3f(radiusLow * 0.7f, leafLow, -radiusLow * 0.7f);
-  glVertex3f(radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  
-  glVertex3f(radiusLow, leafLow, 0.0f);
-  glVertex3f(radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(radiusMid, leafMid, 0.0f);
-  
-  glEnd();
-  
-  // TOP - simple cap to finish the sphere
-  glColor3f(tree.leavesR * 0.8f, tree.leavesG * 0.8f, tree.leavesB * 0.8f);
-  glBegin(GL_TRIANGLES);
-  
-  // 8 triangles converging to top point
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(radiusMid, leafMid, 0.0f);
-  glVertex3f(radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(0.0f, leafMid, radiusMid);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(0.0f, leafMid, radiusMid);
-  glVertex3f(-radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, radiusMid * 0.7f);
-  glVertex3f(-radiusMid, leafMid, 0.0f);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(-radiusMid, leafMid, 0.0f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(-radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(0.0f, leafMid, -radiusMid);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(0.0f, leafMid, -radiusMid);
-  glVertex3f(radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  
-  glVertex3f(0.0f, leafTop, 0.0f);
-  glVertex3f(radiusMid * 0.7f, leafMid, -radiusMid * 0.7f);
-  glVertex3f(radiusMid, leafMid, 0.0f);
-  
-  glEnd();
-  
-  // Add some branch geometry for more detail
-  glColor3f(tree.trunkR * 1.1f, tree.trunkG * 1.1f, tree.trunkB * 1.1f);
-  glBegin(GL_TRIANGLES);
-  
-  // Simple branch stubs sticking out
-  float branchHeight = tree.height * 0.45f;
-  
-  // Branch pointing forward
-  glVertex3f(0.0f, branchHeight, 0.0f);
-  glVertex3f(-0.2f, branchHeight + 0.1f, 1.0f);
-  glVertex3f(0.2f, branchHeight + 0.1f, 1.0f);
-  
-  // Branch pointing right
-  glVertex3f(0.0f, branchHeight + 0.3f, 0.0f);
-  glVertex3f(1.0f, branchHeight + 0.4f, -0.2f);
-  glVertex3f(1.0f, branchHeight + 0.4f, 0.2f);
-  
-  // Branch pointing left
-  glVertex3f(0.0f, branchHeight + 0.2f, 0.0f);
-  glVertex3f(-1.0f, branchHeight + 0.3f, 0.2f);
-  glVertex3f(-1.0f, branchHeight + 0.3f, -0.2f);
+  // 3 branches at 120 degree intervals
+  for (int i = 0; i < 3; i++) {
+    float angle = (i / 3.0f) * 2.0f * M_PI;
+    float bx = cos(angle) * 1.5f;
+    float bz = sin(angle) * 1.5f;
+    
+    glVertex3f(0.0f, branchHeight + (i * 0.2f), 0.0f);
+    glVertex3f(bx * 0.3f, branchHeight + (i * 0.2f) + 0.1f, bz * 0.3f);
+    glVertex3f(bx, branchHeight + (i * 0.2f) - 0.1f, bz);
+  }
   
   glEnd();
   
@@ -787,52 +638,173 @@ void drawBench(const Bench& bench) {
   // Dark weathered wood color
   glColor3f(0.18f, 0.16f, 0.15f);
   
-  // Bench seat
+  // Bench seat - fully enclosed with all 6 faces
   glBegin(GL_QUADS);
+  
+  // Top face
+  glVertex3f(-1.0f, 0.5f, -0.3f);
+  glVertex3f(1.0f, 0.5f, -0.3f);
+  glVertex3f(1.0f, 0.5f, 0.3f);
+  glVertex3f(-1.0f, 0.5f, 0.3f);
+  
+  // Bottom face
+  glVertex3f(-1.0f, 0.4f, -0.3f);
+  glVertex3f(1.0f, 0.4f, -0.3f);
+  glVertex3f(1.0f, 0.4f, 0.3f);
+  glVertex3f(-1.0f, 0.4f, 0.3f);
+  
+  // Front face
+  glVertex3f(-1.0f, 0.4f, 0.3f);
+  glVertex3f(1.0f, 0.4f, 0.3f);
+  glVertex3f(1.0f, 0.5f, 0.3f);
+  glVertex3f(-1.0f, 0.5f, 0.3f);
+  
+  // Back face
   glVertex3f(-1.0f, 0.4f, -0.3f);
   glVertex3f(1.0f, 0.4f, -0.3f);
   glVertex3f(1.0f, 0.5f, -0.3f);
   glVertex3f(-1.0f, 0.5f, -0.3f);
   
+  // Left side
+  glVertex3f(-1.0f, 0.4f, -0.3f);
   glVertex3f(-1.0f, 0.4f, 0.3f);
+  glVertex3f(-1.0f, 0.5f, 0.3f);
+  glVertex3f(-1.0f, 0.5f, -0.3f);
+  
+  // Right side
+  glVertex3f(1.0f, 0.4f, -0.3f);
   glVertex3f(1.0f, 0.4f, 0.3f);
   glVertex3f(1.0f, 0.5f, 0.3f);
-  glVertex3f(-1.0f, 0.5f, 0.3f);
+  glVertex3f(1.0f, 0.5f, -0.3f);
+  
   glEnd();
   
-  // Bench back
+  // Bench back - fully enclosed
   glBegin(GL_QUADS);
+  
+  // Front face (facing player when sitting)
   glVertex3f(-1.0f, 0.5f, -0.35f);
   glVertex3f(1.0f, 0.5f, -0.35f);
   glVertex3f(1.0f, 1.2f, -0.35f);
   glVertex3f(-1.0f, 1.2f, -0.35f);
+  
+  // Back face
+  glVertex3f(-1.0f, 0.5f, -0.45f);
+  glVertex3f(1.0f, 0.5f, -0.45f);
+  glVertex3f(1.0f, 1.2f, -0.45f);
+  glVertex3f(-1.0f, 1.2f, -0.45f);
+  
+  // Top edge
+  glVertex3f(-1.0f, 1.2f, -0.45f);
+  glVertex3f(1.0f, 1.2f, -0.45f);
+  glVertex3f(1.0f, 1.2f, -0.35f);
+  glVertex3f(-1.0f, 1.2f, -0.35f);
+  
+  // Left side
+  glVertex3f(-1.0f, 0.5f, -0.45f);
+  glVertex3f(-1.0f, 0.5f, -0.35f);
+  glVertex3f(-1.0f, 1.2f, -0.35f);
+  glVertex3f(-1.0f, 1.2f, -0.45f);
+  
+  // Right side
+  glVertex3f(1.0f, 0.5f, -0.45f);
+  glVertex3f(1.0f, 0.5f, -0.35f);
+  glVertex3f(1.0f, 1.2f, -0.35f);
+  glVertex3f(1.0f, 1.2f, -0.45f);
+  
   glEnd();
   
-  // Simple legs (4 posts)
+  // Legs - fully enclosed rectangular posts (4 legs)
   glBegin(GL_QUADS);
-  // Left front leg
-  glVertex3f(-0.8f, 0.0f, 0.2f);
-  glVertex3f(-0.7f, 0.0f, 0.2f);
-  glVertex3f(-0.7f, 0.4f, 0.2f);
-  glVertex3f(-0.8f, 0.4f, 0.2f);
   
-  // Right front leg
-  glVertex3f(0.7f, 0.0f, 0.2f);
-  glVertex3f(0.8f, 0.0f, 0.2f);
-  glVertex3f(0.8f, 0.4f, 0.2f);
-  glVertex3f(0.7f, 0.4f, 0.2f);
+  // LEFT FRONT LEG
+  // Front face
+  glVertex3f(-0.8f, 0.0f, 0.25f);
+  glVertex3f(-0.7f, 0.0f, 0.25f);
+  glVertex3f(-0.7f, 0.4f, 0.25f);
+  glVertex3f(-0.8f, 0.4f, 0.25f);
+  // Back face
+  glVertex3f(-0.8f, 0.0f, 0.15f);
+  glVertex3f(-0.7f, 0.0f, 0.15f);
+  glVertex3f(-0.7f, 0.4f, 0.15f);
+  glVertex3f(-0.8f, 0.4f, 0.15f);
+  // Left side
+  glVertex3f(-0.8f, 0.0f, 0.15f);
+  glVertex3f(-0.8f, 0.0f, 0.25f);
+  glVertex3f(-0.8f, 0.4f, 0.25f);
+  glVertex3f(-0.8f, 0.4f, 0.15f);
+  // Right side
+  glVertex3f(-0.7f, 0.0f, 0.15f);
+  glVertex3f(-0.7f, 0.0f, 0.25f);
+  glVertex3f(-0.7f, 0.4f, 0.25f);
+  glVertex3f(-0.7f, 0.4f, 0.15f);
   
-  // Left back leg
-  glVertex3f(-0.8f, 0.0f, -0.2f);
-  glVertex3f(-0.7f, 0.0f, -0.2f);
-  glVertex3f(-0.7f, 0.4f, -0.2f);
-  glVertex3f(-0.8f, 0.4f, -0.2f);
+  // RIGHT FRONT LEG
+  // Front face
+  glVertex3f(0.7f, 0.0f, 0.25f);
+  glVertex3f(0.8f, 0.0f, 0.25f);
+  glVertex3f(0.8f, 0.4f, 0.25f);
+  glVertex3f(0.7f, 0.4f, 0.25f);
+  // Back face
+  glVertex3f(0.7f, 0.0f, 0.15f);
+  glVertex3f(0.8f, 0.0f, 0.15f);
+  glVertex3f(0.8f, 0.4f, 0.15f);
+  glVertex3f(0.7f, 0.4f, 0.15f);
+  // Left side
+  glVertex3f(0.7f, 0.0f, 0.15f);
+  glVertex3f(0.7f, 0.0f, 0.25f);
+  glVertex3f(0.7f, 0.4f, 0.25f);
+  glVertex3f(0.7f, 0.4f, 0.15f);
+  // Right side
+  glVertex3f(0.8f, 0.0f, 0.15f);
+  glVertex3f(0.8f, 0.0f, 0.25f);
+  glVertex3f(0.8f, 0.4f, 0.25f);
+  glVertex3f(0.8f, 0.4f, 0.15f);
   
-  // Right back leg
-  glVertex3f(0.7f, 0.0f, -0.2f);
-  glVertex3f(0.8f, 0.0f, -0.2f);
-  glVertex3f(0.8f, 0.4f, -0.2f);
-  glVertex3f(0.7f, 0.4f, -0.2f);
+  // LEFT BACK LEG
+  // Front face
+  glVertex3f(-0.8f, 0.0f, -0.15f);
+  glVertex3f(-0.7f, 0.0f, -0.15f);
+  glVertex3f(-0.7f, 0.4f, -0.15f);
+  glVertex3f(-0.8f, 0.4f, -0.15f);
+  // Back face
+  glVertex3f(-0.8f, 0.0f, -0.25f);
+  glVertex3f(-0.7f, 0.0f, -0.25f);
+  glVertex3f(-0.7f, 0.4f, -0.25f);
+  glVertex3f(-0.8f, 0.4f, -0.25f);
+  // Left side
+  glVertex3f(-0.8f, 0.0f, -0.25f);
+  glVertex3f(-0.8f, 0.0f, -0.15f);
+  glVertex3f(-0.8f, 0.4f, -0.15f);
+  glVertex3f(-0.8f, 0.4f, -0.25f);
+  // Right side
+  glVertex3f(-0.7f, 0.0f, -0.25f);
+  glVertex3f(-0.7f, 0.0f, -0.15f);
+  glVertex3f(-0.7f, 0.4f, -0.15f);
+  glVertex3f(-0.7f, 0.4f, -0.25f);
+  
+  // RIGHT BACK LEG
+  // Front face
+  glVertex3f(0.7f, 0.0f, -0.15f);
+  glVertex3f(0.8f, 0.0f, -0.15f);
+  glVertex3f(0.8f, 0.4f, -0.15f);
+  glVertex3f(0.7f, 0.4f, -0.15f);
+  // Back face
+  glVertex3f(0.7f, 0.0f, -0.25f);
+  glVertex3f(0.8f, 0.0f, -0.25f);
+  glVertex3f(0.8f, 0.4f, -0.25f);
+  glVertex3f(0.7f, 0.4f, -0.25f);
+  // Left side
+  glVertex3f(0.7f, 0.0f, -0.25f);
+  glVertex3f(0.7f, 0.0f, -0.15f);
+  glVertex3f(0.7f, 0.4f, -0.15f);
+  glVertex3f(0.7f, 0.4f, -0.25f);
+  // Right side
+  glVertex3f(0.8f, 0.0f, -0.25f);
+  glVertex3f(0.8f, 0.0f, -0.15f);
+  glVertex3f(0.8f, 0.4f, -0.15f);
+  glVertex3f(0.8f, 0.4f, -0.25f);
+  
   glEnd();
   
   glPopMatrix();

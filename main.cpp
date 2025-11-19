@@ -11,7 +11,7 @@ double turnSpeed = 2.5;
 double pitchSpeed = 2.0;
 
 double worldSize = 300.0;
-double fogDensity = 0.008;
+double fogDensity = 0.025;  // Updated to match new thick fog
 double fov = 70.0;
 
 double timeOfDay = 22.0;
@@ -62,9 +62,13 @@ void initializeLighting() {
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0); // Reserved for minimal moonlight
   
-  // Very dark ambient - just barely enough to see shapes
-  float ambient[] = {0.03f, 0.03f, 0.05f, 1.0f};
+  // Stronger ambient light so surfaces are visible from all angles
+  // Increased from 0.03/0.03/0.05 to 0.15/0.15/0.18 for better omnidirectional lighting
+  float ambient[] = {0.15f, 0.15f, 0.18f, 1.0f};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+  
+  // Enable two-sided lighting so backfaces are also lit
+  glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
   
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -84,26 +88,40 @@ void initializeLighting() {
 
 void initializeFog() {
   glEnable(GL_FOG);
-  glFogi(GL_FOG_MODE, GL_EXP2);
+  glFogi(GL_FOG_MODE, GL_EXP2);  // Exponential squared for sharper falloff
   
-  float fogColor[] = {0.08f, 0.06f, 0.12f, 1.0f};
+  // Darker, more oppressive fog color for horror atmosphere
+  float fogColor[] = {0.05f, 0.04f, 0.08f, 1.0f};
   glFogfv(GL_FOG_COLOR, fogColor);
-  glFogf(GL_FOG_DENSITY, fogDensity);
-  glHint(GL_FOG_HINT, GL_DONT_CARE);
+  
+  // Much denser fog for ~50ft (15 units) visibility with sharp cutoff
+  // Increased from 0.008 to 0.025 for much thicker fog
+  glFogf(GL_FOG_DENSITY, 0.025f);
+  
+  glHint(GL_FOG_HINT, GL_NICEST);  // Best quality fog rendering
 }
 
 void updateLighting() {
-  // Very minimal moonlight from above - just enough to see silhouettes
-  float moonR = 0.05f;
-  float moonG = 0.05f;
-  float moonB = 0.08f;
+  // Brighter moonlight for better visibility of distant silhouettes
+  // Increased from 0.02/0.02/0.04 to 0.08/0.08/0.12
+  float moonR = 0.08f;
+  float moonG = 0.08f;
+  float moonB = 0.12f;
   
-  float lightPos[] = {0.0f, 100.0f, 0.0f, 1.0f}; // Directly overhead
+  // Position moon at an angle (not directly overhead) - this creates more dramatic shadows
+  // Position it high and to the side for atmospheric effect
+  float lightPos[] = {50.0f, 80.0f, -30.0f, 1.0f}; // Was (0, 100, 0)
   float lightColor[] = {moonR, moonG, moonB, 1.0f};
   
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
   glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
+  
+  // Add attenuation to moonlight so it's weaker up close (player light dominates)
+  // but still provides some ambient light at distance
+  glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0f);
+  glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.001f);
+  glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.00001f);
 }
 
 void setupStreetLampLights() {
@@ -185,17 +203,20 @@ void setupStreetLampLights() {
   // Setup player personal light (LIGHT7) - follows the player
   float playerLightPos[] = {(float)playerX, (float)playerY, (float)playerZ, 1.0f};
   
-  // Soft white/blue light - like a flashlight or personal lantern
-  float playerLightColor[] = {0.4f, 0.4f, 0.5f, 1.0f};
+  // Bright light with strong ambient component for omnidirectional effect
+  // This ensures surfaces are lit regardless of which way they're facing
+  float playerLightDiffuse[] = {0.8f, 0.8f, 0.9f, 1.0f};  // Directional component
+  float playerLightAmbient[] = {0.4f, 0.4f, 0.45f, 1.0f}; // Strong ambient for all-around lighting
   
   glLightfv(GL_LIGHT7, GL_POSITION, playerLightPos);
-  glLightfv(GL_LIGHT7, GL_DIFFUSE, playerLightColor);
-  glLightfv(GL_LIGHT7, GL_SPECULAR, playerLightColor);
+  glLightfv(GL_LIGHT7, GL_DIFFUSE, playerLightDiffuse);
+  glLightfv(GL_LIGHT7, GL_AMBIENT, playerLightAmbient);  // Add ambient component
+  glLightfv(GL_LIGHT7, GL_SPECULAR, playerLightDiffuse);
   
-  // Moderate falloff - illuminates area around player
+  // Much wider range - reduced attenuation for ~25ft clear visibility
   glLightf(GL_LIGHT7, GL_CONSTANT_ATTENUATION, 1.0f);
-  glLightf(GL_LIGHT7, GL_LINEAR_ATTENUATION, 0.1f);
-  glLightf(GL_LIGHT7, GL_QUADRATIC_ATTENUATION, 0.02f);
+  glLightf(GL_LIGHT7, GL_LINEAR_ATTENUATION, 0.02f);
+  glLightf(GL_LIGHT7, GL_QUADRATIC_ATTENUATION, 0.003f);
 }
 
 int main(int argc, char* argv[]) {
@@ -207,7 +228,7 @@ int main(int argc, char* argv[]) {
   glutCreateWindow("Eerie City - PS1 Horror Aesthetic [Block-Based]");
 
   glEnable(GL_DEPTH_TEST);
-  glClearColor(0.05f, 0.04f, 0.08f, 1.0f);
+  glClearColor(0.05f, 0.04f, 0.08f, 1.0f);  // Match new darker fog color
 
   std::cout << "\n=== Initializing Eerie City (Block-Based) ===" << std::endl;
   std::cout << "Block size: " << blockSize << " units" << std::endl;
