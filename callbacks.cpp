@@ -3,10 +3,11 @@
 #include <iomanip>
 
 void display() {
-  drawSky();
-  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
+  
+  // Draw sky background first
+  drawSky();
   
   // First-person camera
   double lookX = playerX + sin(playerAngle * M_PI / 180.0) * cos(playerPitch * M_PI / 180.0);
@@ -19,20 +20,35 @@ void display() {
   
   updateLighting();
   
+  // Setup dynamic street lamp lighting (find closest lamps to player)
+  setupStreetLampLights();
+  
   // Draw world
   drawGroundPlane();
+  drawRoads();
   
   for (const auto& building : buildings) {
     drawBuilding(building);
+  }
+  
+  // Draw park elements
+  for (const auto& tree : trees) {
+    drawTree(tree);
+  }
+  
+  for (const auto& bench : benches) {
+    drawBench(bench);
   }
   
   for (const auto& lamp : streetLamps) {
     drawStreetLamp(lamp);
   }
   
-  for (const auto& obj : ambientObjects) {
-    drawAmbientObject(obj);
-  }
+  // Ambient objects disabled - too dark/cluttered with new lighting
+  // Uncomment to re-enable:
+  // for (const auto& obj : ambientObjects) {
+  //   drawAmbientObject(obj);
+  // }
   
   // Apply PS1 effects
   applyDitherEffect();
@@ -59,7 +75,7 @@ void display() {
   glColor3f(0.7f, 0.6f, 0.5f);
   
   glRasterPos2f(10, 20);
-  Print("EERIE CITY - PS1 HORROR AESTHETIC");
+  Print("EERIE CITY - PS1 HORROR [BLOCK-BASED]");
   
   glRasterPos2f(10, 40);
   Print("Controls:");
@@ -127,44 +143,55 @@ void display() {
   
   glRasterPos2f(10, 320);
   std::ostringstream objects;
-  objects << "Scene: " << buildings.size() << " buildings, " 
-          << streetLamps.size() << " lamps, "
-          << ambientObjects.size() << " objects";
+  objects << "City: " << cityBlocks.size() << " blocks, "
+          << buildings.size() << " buildings, " 
+          << streetLamps.size() << " lamps";
   Print(objects.str());
   
-  // Vignette effect
+  // Vignette effect - darken the edges of the screen for horror atmosphere
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
-  float vignetteSize = 0.7f;
+  // Top edge gradient
   glBegin(GL_QUADS);
-  
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width * (1.0f - vignetteSize) / 2.0f, height * (1.0f - vignetteSize) / 2.0f);
-  glVertex2f(width * (1.0f + vignetteSize) / 2.0f, height * (1.0f - vignetteSize) / 2.0f);
-  
-  glColor4f(0.0f, 0.0f, 0.0f, 0.6f);
-  glVertex2f(width * (1.0f + vignetteSize) / 2.0f, height * (1.0f + vignetteSize) / 2.0f);
-  glVertex2f(width * (1.0f - vignetteSize) / 2.0f, height * (1.0f + vignetteSize) / 2.0f);
-  
-  glEnd();
-  
-  glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
   glVertex2f(0, 0);
   glVertex2f(width, 0);
   glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width, height * 0.15f);
-  glVertex2f(0, height * 0.15f);
+  glVertex2f(width, height * 0.2f);
+  glVertex2f(0, height * 0.2f);
   glEnd();
   
+  // Bottom edge gradient
   glBegin(GL_QUADS);
   glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(0, height * 0.85f);
-  glVertex2f(width, height * 0.85f);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
+  glVertex2f(0, height * 0.8f);
+  glVertex2f(width, height * 0.8f);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
   glVertex2f(width, height);
   glVertex2f(0, height);
+  glEnd();
+  
+  // Left edge gradient
+  glBegin(GL_QUADS);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+  glVertex2f(0, 0);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
+  glVertex2f(width * 0.15f, 0);
+  glVertex2f(width * 0.15f, height);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+  glVertex2f(0, height);
+  glEnd();
+  
+  // Right edge gradient
+  glBegin(GL_QUADS);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
+  glVertex2f(width * 0.85f, 0);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+  glVertex2f(width, 0);
+  glVertex2f(width, height);
+  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
+  glVertex2f(width * 0.85f, height);
   glEnd();
   
   glDisable(GL_BLEND);

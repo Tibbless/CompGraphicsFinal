@@ -19,6 +19,7 @@ else
     LDFLAGS = -lglut -lGLU -lGL -lm
     TARGET = eerie_city
 endif
+
 SOURCES = main.cpp world_generation.cpp rendering.cpp callbacks.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 HEADERS = eerie_city.h
@@ -43,7 +44,7 @@ run: $(TARGET)
 
 # Help target
 help:
-	@echo "Eerie City - PS1 Horror Aesthetic"
+	@echo "Eerie City - PS1 Horror Aesthetic [Block-Based]"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  make          - Build the project"

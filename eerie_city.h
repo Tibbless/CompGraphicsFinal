@@ -56,6 +56,28 @@ extern double noiseAmount;
 extern bool ditherEnabled;
 extern int ditherPattern[4][4];
 
+// Block system settings
+extern int blockSize;
+extern int roadWidth;
+extern int cityGridSize;
+
+// Block types
+enum BlockType {
+  BLOCK_EMPTY = 0,
+  BLOCK_BUILDING = 1,
+  BLOCK_PARK = 2,
+  BLOCK_PLAZA = 3
+};
+
+// City block structure
+struct CityBlock {
+  int gridX, gridZ;
+  double worldX, worldZ;
+  BlockType type;
+  std::vector<int> buildingIndices;  // Indices into buildings vector
+  std::vector<int> lampIndices;      // Indices into streetLamps vector
+};
+
 // Building structure
 struct Building {
   double x, z;
@@ -83,9 +105,27 @@ struct AmbientObject {
   float scale;
 };
 
+// Tree structure for parks
+struct Tree {
+  double x, z;
+  double height;
+  float trunkR, trunkG, trunkB;
+  float leavesR, leavesG, leavesB;
+  float scale;
+};
+
+// Bench structure for parks
+struct Bench {
+  double x, z;
+  double rotation;
+};
+
+extern std::vector<CityBlock> cityBlocks;
 extern std::vector<Building> buildings;
 extern std::vector<StreetLamp> streetLamps;
 extern std::vector<AmbientObject> ambientObjects;
+extern std::vector<Tree> trees;
+extern std::vector<Bench> benches;
 
 // Function declarations
 void Print(const std::string& text);
@@ -95,8 +135,12 @@ void ErrCheck(const std::string& where);
 // Initialization functions
 void initializeLighting();
 void updateLighting();
-void initializeBuildings();
-void initializeStreetLamps();
+void setupStreetLampLights();
+void initializeCityGrid();
+void generateBuildingBlock(CityBlock& block);
+void generateParkBlock(CityBlock& block);
+void generateRoadLights();
+void generateRoadLights();
 void initializeAmbientObjects();
 void initializeFog();
 
@@ -104,7 +148,10 @@ void initializeFog();
 void drawBuilding(const Building& building);
 void drawStreetLamp(const StreetLamp& lamp);
 void drawAmbientObject(const AmbientObject& obj);
+void drawTree(const Tree& tree);
+void drawBench(const Bench& bench);
 void drawGroundPlane();
+void drawRoads();
 void drawSky();
 void applyDitherEffect();
 void applyScreenDistortion();
