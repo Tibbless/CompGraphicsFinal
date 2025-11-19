@@ -69,6 +69,13 @@ enum BlockType {
   BLOCK_PLAZA = 3
 };
 
+// Tree types for variety
+enum TreeType {
+  TREE_LAYERED = 0,    // Original - distinct foliage clusters with visible trunk
+  TREE_DEAD = 1,       // Skeletal - just spiky branches, no leaves
+  TREE_TWISTED = 2     // Gnarled - irregular asymmetric branches with sparse foliage
+};
+
 // City block structure
 struct CityBlock {
   int gridX, gridZ;
@@ -112,6 +119,7 @@ struct Tree {
   float trunkR, trunkG, trunkB;
   float leavesR, leavesG, leavesB;
   float scale;
+  TreeType type;  // NEW: Determines which drawing function to use
 };
 
 // Bench structure for parks
@@ -148,7 +156,10 @@ void initializeFog();
 void drawBuilding(const Building& building);
 void drawStreetLamp(const StreetLamp& lamp);
 void drawAmbientObject(const AmbientObject& obj);
-void drawTree(const Tree& tree);
+void drawTree(const Tree& tree);  // Main dispatcher
+void drawLayeredTree(const Tree& tree);
+void drawDeadTree(const Tree& tree);
+void drawTwistedTree(const Tree& tree);
 void drawBench(const Bench& bench);
 void drawGroundPlane();
 void drawRoads();

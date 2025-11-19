@@ -115,6 +115,17 @@ void generateParkBlock(CityBlock& block) {
     tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
     tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
     
+    // ASSIGN RANDOM TREE TYPE!
+    // Distribution: 30% layered, 45% dead, 25% twisted
+    int typeRoll = rand() % 100;
+    if (typeRoll < 30) {
+      tree.type = TREE_LAYERED;
+    } else if (typeRoll < 75) {
+      tree.type = TREE_DEAD;  // Most common for horror aesthetic
+    } else {
+      tree.type = TREE_TWISTED;
+    }
+    
     trees.push_back(tree);
   }
   
