@@ -84,12 +84,18 @@ void drawBuilding(const Building& building) {
     glEnable(GL_LIGHTING);
   }
   
-  // Edge lines for definition
+  // Edge lines for definition - use polygon offset to prevent Z-fighting
   glDisable(GL_LIGHTING);
+  
+  // Enable polygon offset for lines to push them slightly forward
+  glEnable(GL_POLYGON_OFFSET_LINE);
+  glPolygonOffset(-1.0f, -1.0f);  // Negative values pull lines toward camera
+  
   glColor3f(0.0f, 0.0f, 0.0f);
   glLineWidth(1.5f);
   glBegin(GL_LINES);
   
+  // Vertical edges at exact building corners (no offset needed with polygon offset)
   glVertex3f(-building.width, 0.0f, building.depth);
   glVertex3f(-building.width, building.height, building.depth);
   
@@ -103,6 +109,8 @@ void drawBuilding(const Building& building) {
   glVertex3f(-building.width, building.height, -building.depth);
   
   glEnd();
+  
+  glDisable(GL_POLYGON_OFFSET_LINE);
   glEnable(GL_LIGHTING);
   
   glPopMatrix();
