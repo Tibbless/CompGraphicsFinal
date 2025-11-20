@@ -1,19 +1,26 @@
 #include "eerie_city.h"
 
-// Helper function to convert grid coordinates to world coordinates
+// ============================================================================
+// GRID COORDINATE CONVERSION
+// ============================================================================
+
+// Convert grid coordinates to world coordinates
 void gridToWorld(int gridX, int gridZ, double& worldX, double& worldZ) {
   int totalBlockSize = blockSize + roadWidth;
   worldX = gridX * totalBlockSize;
   worldZ = gridZ * totalBlockSize;
 }
 
-// Generate a building block with multiple buildings (no overlaps)
+// ============================================================================
+// BUILDING BLOCK GENERATION
+// ============================================================================
+
 void generateBuildingBlock(CityBlock& block) {
-  // Create 3-6 buildings per block (increased from 2-5)
+  // Create 3-6 buildings per block
   int numBuildings = 3 + (rand() % 4);
   
   std::vector<Building> candidates;
-  int maxAttempts = 50; // Try up to 50 times to place all buildings
+  int maxAttempts = 50;
   
   for (int i = 0; i < numBuildings; i++) {
     bool placed = false;
@@ -24,43 +31,42 @@ void generateBuildingBlock(CityBlock& block) {
       
       Building b;
       
-      // Building dimensions - SMALLER sizes for more buildings per block
-      b.width = 2.0 + (rand() / double(RAND_MAX)) * 3.0;   // Was 3.0-8.0, now 2.0-5.0
-      b.depth = 2.0 + (rand() / double(RAND_MAX)) * 3.0;   // Was 3.0-8.0, now 2.0-5.0
-      b.height = 8.0 + (rand() / double(RAND_MAX)) * 28.0; // Height unchanged
+      // Building dimensions (smaller for more density)
+      b.width = 2.0 + (rand() / double(RAND_MAX)) * 3.0;
+      b.depth = 2.0 + (rand() / double(RAND_MAX)) * 3.0;
+      b.height = 8.0 + (rand() / double(RAND_MAX)) * 28.0;
       
-      // Rotation - align mostly to grid with some variation
+      // Rotation with slight variation
       b.rotation = (rand() % 4) * 90.0 + (rand() / double(RAND_MAX) - 0.5) * 10.0;
       
-      // Calculate the maximum dimension for this building (accounting for rotation)
+      // Calculate maximum dimension accounting for rotation
       double maxDim = fmax(b.width, b.depth);
       
-      // Position within the block (leaving margins for streets AND building size)
-      double marginX = blockSize * 0.15 + maxDim; // Street margin + building radius
+      // Position within block with margins
+      double marginX = blockSize * 0.15 + maxDim;
       double marginZ = blockSize * 0.15 + maxDim;
       double usableWidth = blockSize - (2 * marginX);
       double usableDepth = blockSize - (2 * marginZ);
       
-      // Make sure we have room to place buildings
+      // Skip if building too large for block
       if (usableWidth <= 0 || usableDepth <= 0) {
-        // Building is too big for this block, skip it
         break;
       }
       
       b.x = block.worldX + marginX + (rand() / double(RAND_MAX)) * usableWidth;
       b.z = block.worldZ + marginZ + (rand() / double(RAND_MAX)) * usableDepth;
       
-      // Desaturated, dark colors for PS1 horror aesthetic
+      // Desaturated, dark PS1 horror colors
       float baseVal = 0.15f + (rand() / float(RAND_MAX)) * 0.15f;
       b.r = baseVal + (rand() / float(RAND_MAX)) * 0.05f;
       b.g = baseVal + (rand() / float(RAND_MAX)) * 0.05f;
       b.b = baseVal + (rand() / float(RAND_MAX)) * 0.08f;
       
       b.buildingType = rand() % 3;
-      b.hasWindows = (rand() % 100) < 95;  // INCREASED from 75 to 95 - almost all buildings have windows now
+      b.hasWindows = true; 
       b.windowPattern = rand() % 4;
       
-      // Check if building stays within block boundaries
+      // Check block boundaries
       bool outsideBlock = false;
       if (b.x - maxDim < block.worldX ||
           b.x + maxDim > block.worldX + blockSize ||
@@ -70,21 +76,18 @@ void generateBuildingBlock(CityBlock& block) {
       }
       
       if (outsideBlock) {
-        continue; // Try again
+        continue;
       }
       
-      // Check for overlap with existing buildings in this block
+      // Check for overlaps with existing buildings
       bool overlaps = false;
-      double minSeparation = 1.0; // Reduced from 1.5 to allow tighter packing
+      double minSeparation = 1.0;
       
       for (const auto& existing : candidates) {
-        // Calculate distance between building centers
         double dx = b.x - existing.x;
         double dz = b.z - existing.z;
         double distance = sqrt(dx*dx + dz*dz);
         
-        // Calculate minimum safe distance (sum of half-widths + separation)
-        // Use max dimension for each building to be safe with rotation
         double maxDim1 = fmax(b.width, b.depth);
         double maxDim2 = fmax(existing.width, existing.depth);
         double minDistance = maxDim1 + maxDim2 + minSeparation;
@@ -109,36 +112,36 @@ void generateBuildingBlock(CityBlock& block) {
   }
 }
 
-// Generate a park block with trees, benches, and atmospheric lighting
+// ============================================================================
+// PARK BLOCK GENERATION
+// ============================================================================
+
 void generateParkBlock(CityBlock& block) {
-  // Park layout: create a more organized feeling with clusters and pathways
-  
-  // Define park areas - center open space with tree clusters around edges
   double parkCenterX = block.worldX + blockSize / 2.0;
   double parkCenterZ = block.worldZ + blockSize / 2.0;
   
-  // Generate tree clusters pushed to the edges, leaving center clear
-  int numTreeClusters = 4; // Always 4 clusters - one near each corner/edge
+  // Generate tree clusters at edges (4 corner areas)
+  int numTreeClusters = 4;
   
   for (int cluster = 0; cluster < numTreeClusters; cluster++) {
-    // Force clusters to specific edge/corner positions
     double clusterX, clusterZ;
-    double edgeDistance = blockSize * 0.35; // Distance from center to cluster
+    double edgeDistance = blockSize * 0.35;
     
+    // Position clusters at corners
     switch(cluster) {
-      case 0: // North-East corner area
+      case 0:  // North-East
         clusterX = parkCenterX + edgeDistance;
         clusterZ = parkCenterZ - edgeDistance;
         break;
-      case 1: // South-East corner area
+      case 1:  // South-East
         clusterX = parkCenterX + edgeDistance;
         clusterZ = parkCenterZ + edgeDistance;
         break;
-      case 2: // South-West corner area
+      case 2:  // South-West
         clusterX = parkCenterX - edgeDistance;
         clusterZ = parkCenterZ + edgeDistance;
         break;
-      case 3: // North-West corner area
+      case 3:  // North-West
         clusterX = parkCenterX - edgeDistance;
         clusterZ = parkCenterZ - edgeDistance;
         break;
@@ -148,41 +151,38 @@ void generateParkBlock(CityBlock& block) {
         break;
     }
     
-    // ONE larger, more detailed tree per cluster
+    // One larger, detailed tree per cluster
     Tree tree;
     
-    // Position at cluster center with slight variation
     tree.x = clusterX + (rand() / double(RAND_MAX) - 0.5) * 2.0;
     tree.z = clusterZ + (rand() / double(RAND_MAX) - 0.5) * 2.0;
     
-    // Ensure tree stays within park bounds with margin
+    // Keep tree within park bounds
     double margin = 4.0;
     if (tree.x < block.worldX + margin) tree.x = block.worldX + margin;
     if (tree.x > block.worldX + blockSize - margin) tree.x = block.worldX + blockSize - margin;
     if (tree.z < block.worldZ + margin) tree.z = block.worldZ + margin;
     if (tree.z > block.worldZ + blockSize - margin) tree.z = block.worldZ + blockSize - margin;
     
-    // Tree properties - larger and more prominent as single specimens
-    tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;  // Taller: 6-12 units
-    tree.scale = 1.2f + (rand() / float(RAND_MAX)) * 0.8f;  // Bigger: 1.2-2.0 scale
+    // Tree properties (larger as single specimens)
+    tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+    tree.scale = 1.2f + (rand() / float(RAND_MAX)) * 0.8f;
     
-    // Very dark, dead-looking trees for horror aesthetic
+    // Dark, dead-looking colors for horror aesthetic
     tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
     tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.05f;
     tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
     
-    // Dark, sickly foliage
     tree.leavesR = 0.08f + (rand() / float(RAND_MAX)) * 0.05f;
     tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
     tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
     
-    // ASSIGN RANDOM TREE TYPE!
-    // Distribution: 30% layered, 45% dead, 25% twisted
+    // Random tree type distribution: 30% layered, 45% dead, 25% twisted
     int typeRoll = rand() % 100;
     if (typeRoll < 30) {
       tree.type = TREE_LAYERED;
     } else if (typeRoll < 75) {
-      tree.type = TREE_DEAD;  // Most common for horror aesthetic
+      tree.type = TREE_DEAD;
     } else {
       tree.type = TREE_TWISTED;
     }
@@ -190,34 +190,34 @@ void generateParkBlock(CityBlock& block) {
     trees.push_back(tree);
   }
   
-  // Generate benches very close to edges, facing center of park
-  int numBenches = 6 + (rand() % 3); // 6-8 benches per park for perimeter coverage
+  // Generate benches near edges facing center
+  int numBenches = 6 + (rand() % 3);
   
   for (int i = 0; i < numBenches; i++) {
     Bench bench;
     
-    // Place benches very close to the edges
+    // Place benches close to edges
     int placement = rand() % 4;
-    double closeMargin = blockSize * 0.12; // Very close to edge
+    double closeMargin = blockSize * 0.12;
     double alongEdge = blockSize * 0.2 + (rand() / double(RAND_MAX)) * (blockSize * 0.6);
     
     switch(placement) {
-      case 0: // North edge, facing south into park
+      case 0:  // North edge, facing south
         bench.x = block.worldX + alongEdge;
         bench.z = block.worldZ + closeMargin;
         bench.rotation = 0.0;
         break;
-      case 1: // South edge, facing north into park
+      case 1:  // South edge, facing north
         bench.x = block.worldX + alongEdge;
         bench.z = block.worldZ + blockSize - closeMargin;
         bench.rotation = 180.0;
         break;
-      case 2: // East edge, facing west into park
+      case 2:  // East edge, facing west
         bench.x = block.worldX + blockSize - closeMargin;
         bench.z = block.worldZ + alongEdge;
         bench.rotation = 270.0;
         break;
-      case 3: // West edge, facing east into park
+      case 3:  // West edge, facing east
         bench.x = block.worldX + closeMargin;
         bench.z = block.worldZ + alongEdge;
         bench.rotation = 90.0;
@@ -227,64 +227,59 @@ void generateParkBlock(CityBlock& block) {
     benches.push_back(bench);
   }
   
-  // Add atmospheric park lighting - ring around the center area
-  int numParkLights = 6; // Fixed number for consistent ring pattern
+  // Add atmospheric park lighting in a ring pattern
+  int numParkLights = 6;
   
   for (int i = 0; i < numParkLights; i++) {
     StreetLamp lamp;
     
-    // Position lights in a ring around the center (hexagonal-ish pattern)
+    // Position lights in hexagonal ring around center
     double angle = (i / (double)numParkLights) * 2.0 * M_PI;
-    double ringRadius = blockSize * 0.28; // Distance from center
+    double ringRadius = blockSize * 0.28;
     
     lamp.x = parkCenterX + cos(angle) * ringRadius;
     lamp.z = parkCenterZ + sin(angle) * ringRadius;
     
-    // Add small random offset for less perfect positioning
+    // Add small random offset
     lamp.x += (rand() / double(RAND_MAX) - 0.5) * 2.0;
     lamp.z += (rand() / double(RAND_MAX) - 0.5) * 2.0;
     
-    // Shorter, more atmospheric park lights
+    // Shorter, atmospheric park lights
     lamp.height = 3.0 + (rand() / double(RAND_MAX)) * 1.0;
     lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
     
     // Higher chance of working lights in parks (safer feeling)
-    lamp.isWorking = (rand() % 100) < 75; // 75% working (vs 65% on streets)
+    lamp.isWorking = (rand() % 100) < 75;
     
-    // Track this lamp in the block
     block.lampIndices.push_back(streetLamps.size());
     streetLamps.push_back(lamp);
   }
 }
 
-// Generate an industrial block with warehouses, smokestacks, and fences
+// ============================================================================
+// INDUSTRIAL BLOCK GENERATION
+// ============================================================================
+
 void generateIndustrialBlock(CityBlock& block) {
-  // Industrial blocks have 1-2 large warehouse buildings
+  // 1-2 large warehouse buildings
   int numWarehouses = 1 + (rand() % 2);
   
   for (int i = 0; i < numWarehouses; i++) {
     Building b;
     
-    // Warehouses are LARGE and boxy
-    b.width = 6.0 + (rand() / double(RAND_MAX)) * 6.0;   // 6-12 units wide
-    b.depth = 6.0 + (rand() / double(RAND_MAX)) * 6.0;   // 6-12 units deep
-    b.height = 10.0 + (rand() / double(RAND_MAX)) * 8.0; // 10-18 units tall (shorter than office buildings)
+    // Warehouses are large and boxy
+    b.width = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+    b.depth = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+    b.height = 10.0 + (rand() / double(RAND_MAX)) * 8.0;
     
-    // Minimal rotation - industrial buildings are very grid-aligned
+    // Grid-aligned rotation
     b.rotation = (rand() % 4) * 90.0;
     
-    // Position with good margins
-    double marginX = blockSize * 0.2;
-    double marginZ = blockSize * 0.2;
-    double usableWidth = blockSize - (2 * marginX);
-    double usableDepth = blockSize - (2 * marginZ);
-    
+    // Position with spacing
     if (numWarehouses == 1) {
-      // Single warehouse - center it
       b.x = block.worldX + blockSize / 2.0;
       b.z = block.worldZ + blockSize / 2.0;
     } else {
-      // Two warehouses - position them with spacing
       if (i == 0) {
         b.x = block.worldX + blockSize * 0.35;
         b.z = block.worldZ + blockSize / 2.0;
@@ -294,15 +289,15 @@ void generateIndustrialBlock(CityBlock& block) {
       }
     }
     
-    // Industrial colors - dark grays, rusted browns
+    // Industrial colors (dark grays, rusted browns)
     float baseVal = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
     b.r = baseVal + (rand() / float(RAND_MAX)) * 0.03f;
-    b.g = baseVal - 0.02f + (rand() / float(RAND_MAX)) * 0.02f;  // Slightly less green
-    b.b = baseVal - 0.03f + (rand() / float(RAND_MAX)) * 0.02f;  // Even less blue (rust)
+    b.g = baseVal - 0.02f + (rand() / float(RAND_MAX)) * 0.02f;
+    b.b = baseVal - 0.03f + (rand() / float(RAND_MAX)) * 0.02f;
     
-    b.buildingType = 1;  // Boxy style
-    b.hasWindows = (rand() % 100) < 60;  // Fewer windows than normal buildings
-    b.windowPattern = 0;  // Simple pattern
+    b.buildingType = 1;
+    b.hasWindows = (rand() % 100) < 60;
+    b.windowPattern = 0;
     
     block.buildingIndices.push_back(buildings.size());
     buildings.push_back(b);
@@ -313,15 +308,15 @@ void generateIndustrialBlock(CityBlock& block) {
   for (int i = 0; i < numStacks; i++) {
     Smokestack stack;
     
-    // Position near buildings but not overlapping
+    // Position around buildings
     double angle = (i / (double)numStacks) * 2.0 * M_PI;
     double distance = blockSize * 0.3;
     
     stack.x = block.worldX + blockSize / 2.0 + cos(angle) * distance;
     stack.z = block.worldZ + blockSize / 2.0 + sin(angle) * distance;
     
-    stack.height = 15.0 + (rand() / double(RAND_MAX)) * 10.0;  // 15-25 units tall
-    stack.radius = 0.8 + (rand() / double(RAND_MAX)) * 0.6;     // 0.8-1.4 units radius
+    stack.height = 15.0 + (rand() / double(RAND_MAX)) * 10.0;
+    stack.radius = 0.8 + (rand() / double(RAND_MAX)) * 0.6;
     
     smokestacks.push_back(stack);
   }
@@ -330,7 +325,6 @@ void generateIndustrialBlock(CityBlock& block) {
   double fenceMargin = blockSize * 0.1;
   double fenceHeight = 3.0;
   
-  // North fence
   Fence northFence;
   northFence.x1 = block.worldX + fenceMargin;
   northFence.z1 = block.worldZ + fenceMargin;
@@ -339,7 +333,6 @@ void generateIndustrialBlock(CityBlock& block) {
   northFence.height = fenceHeight;
   fences.push_back(northFence);
   
-  // South fence
   Fence southFence;
   southFence.x1 = block.worldX + fenceMargin;
   southFence.z1 = block.worldZ + blockSize - fenceMargin;
@@ -348,7 +341,6 @@ void generateIndustrialBlock(CityBlock& block) {
   southFence.height = fenceHeight;
   fences.push_back(southFence);
   
-  // East fence
   Fence eastFence;
   eastFence.x1 = block.worldX + blockSize - fenceMargin;
   eastFence.z1 = block.worldZ + fenceMargin;
@@ -357,7 +349,6 @@ void generateIndustrialBlock(CityBlock& block) {
   eastFence.height = fenceHeight;
   fences.push_back(eastFence);
   
-  // West fence
   Fence westFence;
   westFence.x1 = block.worldX + fenceMargin;
   westFence.z1 = block.worldZ + fenceMargin;
@@ -366,8 +357,8 @@ void generateIndustrialBlock(CityBlock& block) {
   westFence.height = fenceHeight;
   fences.push_back(westFence);
   
-  // Minimal lighting in industrial areas - very few working lamps
-  int numLights = 2;  // Only 2 lights per industrial block
+  // Minimal lighting (very dark)
+  int numLights = 2;
   for (int i = 0; i < numLights; i++) {
     StreetLamp lamp;
     
@@ -382,14 +373,17 @@ void generateIndustrialBlock(CityBlock& block) {
     
     lamp.height = 6.0 + (rand() / double(RAND_MAX)) * 2.0;
     lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-    lamp.isWorking = (rand() % 100) < 40;  // Only 40% working - very dark!
+    lamp.isWorking = (rand() % 100) < 40;  // Only 40% working
     
     block.lampIndices.push_back(streetLamps.size());
     streetLamps.push_back(lamp);
   }
 }
 
-// Generate a graveyard block with gravestones, mausoleums, and dead trees
+// ============================================================================
+// GRAVEYARD BLOCK GENERATION
+// ============================================================================
+
 void generateGraveyardBlock(CityBlock& block) {
   double graveyardCenterX = block.worldX + blockSize / 2.0;
   double graveyardCenterZ = block.worldZ + blockSize / 2.0;
@@ -400,17 +394,14 @@ void generateGraveyardBlock(CityBlock& block) {
   for (int i = 0; i < numMausoleums; i++) {
     Mausoleum m;
     
-    // Larger structures positioned prominently
-    m.width = 3.0 + (rand() / double(RAND_MAX)) * 2.0;   // 3-5 units
-    m.depth = 3.0 + (rand() / double(RAND_MAX)) * 2.0;   // 3-5 units
-    m.height = 4.0 + (rand() / double(RAND_MAX)) * 3.0;  // 4-7 units
+    m.width = 3.0 + (rand() / double(RAND_MAX)) * 2.0;
+    m.depth = 3.0 + (rand() / double(RAND_MAX)) * 2.0;
+    m.height = 4.0 + (rand() / double(RAND_MAX)) * 3.0;
     
     if (numMausoleums == 1) {
-      // Single mausoleum - center it
       m.x = graveyardCenterX;
       m.z = graveyardCenterZ;
     } else {
-      // Two mausoleums - spread them out
       if (i == 0) {
         m.x = graveyardCenterX - blockSize * 0.2;
         m.z = graveyardCenterZ;
@@ -420,14 +411,14 @@ void generateGraveyardBlock(CityBlock& block) {
       }
     }
     
-    m.rotation = (rand() % 4) * 90.0;  // Align to grid
+    m.rotation = (rand() % 4) * 90.0;
     
     mausoleums.push_back(m);
   }
   
-  // Add many gravestones in rows (classic cemetery layout)
-  int numRows = 5 + (rand() % 3);     // 5-7 rows
-  int stonesPerRow = 4 + (rand() % 3); // 4-6 stones per row
+  // Add gravestones in rows (classic cemetery layout)
+  int numRows = 5 + (rand() % 3);
+  int stonesPerRow = 4 + (rand() % 3);
   
   double rowSpacing = blockSize * 0.7 / numRows;
   double stoneSpacing = blockSize * 0.7 / stonesPerRow;
@@ -442,7 +433,7 @@ void generateGraveyardBlock(CityBlock& block) {
       stone.x = startX + col * stoneSpacing + (rand() / double(RAND_MAX) - 0.5) * 0.8;
       stone.z = startZ + row * rowSpacing + (rand() / double(RAND_MAX) - 0.5) * 0.8;
       
-      // Check if too close to mausoleums
+      // Check distance to mausoleums
       bool tooClose = false;
       for (const auto& m : mausoleums) {
         double dist = sqrt((stone.x - m.x)*(stone.x - m.x) + (stone.z - m.z)*(stone.z - m.z));
@@ -454,13 +445,12 @@ void generateGraveyardBlock(CityBlock& block) {
       
       if (tooClose) continue;
       
-      // Gravestone dimensions
-      stone.width = 0.4 + (rand() / double(RAND_MAX)) * 0.3;   // 0.4-0.7
-      stone.depth = 0.15 + (rand() / double(RAND_MAX)) * 0.1;  // 0.15-0.25
-      stone.height = 1.0 + (rand() / double(RAND_MAX)) * 1.5;  // 1.0-2.5
+      stone.width = 0.4 + (rand() / double(RAND_MAX)) * 0.3;
+      stone.depth = 0.15 + (rand() / double(RAND_MAX)) * 0.1;
+      stone.height = 1.0 + (rand() / double(RAND_MAX)) * 1.5;
       
-      stone.rotation = (rand() / double(RAND_MAX) - 0.5) * 30.0;  // Slight random tilt
-      stone.stoneType = rand() % 4;  // Random gravestone type
+      stone.rotation = (rand() / double(RAND_MAX) - 0.5) * 30.0;
+      stone.stoneType = rand() % 4;
       
       gravestones.push_back(stone);
     }
@@ -486,7 +476,7 @@ void generateGraveyardBlock(CityBlock& block) {
     if (tree.z < block.worldZ + margin) tree.z = block.worldZ + margin;
     if (tree.z > block.worldZ + blockSize - margin) tree.z = block.worldZ + blockSize - margin;
     
-    tree.height = 7.0 + (rand() / double(RAND_MAX)) * 5.0;  // 7-12 units
+    tree.height = 7.0 + (rand() / double(RAND_MAX)) * 5.0;
     tree.scale = 1.0f + (rand() / float(RAND_MAX)) * 0.5f;
     
     // Very dark, dead colors
@@ -498,7 +488,7 @@ void generateGraveyardBlock(CityBlock& block) {
     tree.leavesG = 0.05f;
     tree.leavesB = 0.05f;
     
-    tree.type = TREE_DEAD;  // Always use dead tree type for graveyards
+    tree.type = TREE_DEAD;  // Always dead trees for graveyards
     
     trees.push_back(tree);
   }
@@ -507,7 +497,6 @@ void generateGraveyardBlock(CityBlock& block) {
   double fenceMargin = blockSize * 0.08;
   double fenceHeight = 2.5;
   
-  // North fence
   Fence northFence;
   northFence.x1 = block.worldX + fenceMargin;
   northFence.z1 = block.worldZ + fenceMargin;
@@ -516,7 +505,6 @@ void generateGraveyardBlock(CityBlock& block) {
   northFence.height = fenceHeight;
   fences.push_back(northFence);
   
-  // South fence
   Fence southFence;
   southFence.x1 = block.worldX + fenceMargin;
   southFence.z1 = block.worldZ + blockSize - fenceMargin;
@@ -525,7 +513,6 @@ void generateGraveyardBlock(CityBlock& block) {
   southFence.height = fenceHeight;
   fences.push_back(southFence);
   
-  // East fence
   Fence eastFence;
   eastFence.x1 = block.worldX + blockSize - fenceMargin;
   eastFence.z1 = block.worldZ + fenceMargin;
@@ -534,7 +521,6 @@ void generateGraveyardBlock(CityBlock& block) {
   eastFence.height = fenceHeight;
   fences.push_back(eastFence);
   
-  // West fence
   Fence westFence;
   westFence.x1 = block.worldX + fenceMargin;
   westFence.z1 = block.worldZ + fenceMargin;
@@ -543,22 +529,24 @@ void generateGraveyardBlock(CityBlock& block) {
   westFence.height = fenceHeight;
   fences.push_back(westFence);
   
-  // Very minimal lighting - graveyards are DARK
-  int numLights = 1;  // Only 1 light at entrance
+  // Very minimal lighting (super dark)
+  int numLights = 1;
   
   StreetLamp lamp;
   lamp.x = block.worldX + blockSize / 2.0;
   lamp.z = block.worldZ + blockSize * 0.1;  // Near front edge
   lamp.height = 4.0 + (rand() / double(RAND_MAX)) * 1.0;
   lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-  lamp.isWorking = (rand() % 100) < 30;  // Only 30% working - super dark!
+  lamp.isWorking = (rand() % 100) < 30;  // Only 30% working
   
   block.lampIndices.push_back(streetLamps.size());
   streetLamps.push_back(lamp);
 }
 
+// ============================================================================
+// CITY GRID INITIALIZATION
+// ============================================================================
 
-// Initialize the city grid with blocks
 void initializeCityGrid() {
   cityBlocks.clear();
   buildings.clear();
@@ -583,8 +571,8 @@ void initializeCityGrid() {
       if (abs(gx) <= 1 && abs(gz) <= 1) {
         block.type = BLOCK_EMPTY;
       } 
-      // Add variety: 55% buildings, 20% parks, 15% industrial, 10% graveyards
       else {
+        // Block distribution: 55% buildings, 20% parks, 15% industrial, 10% graveyards
         int roll = rand() % 100;
         if (roll < 55) {
           block.type = BLOCK_BUILDING;
@@ -615,9 +603,12 @@ void initializeCityGrid() {
   std::cout << "Total mausoleums: " << mausoleums.size() << std::endl;
 }
 
-// Generate street lamps along roads between blocks
+// ============================================================================
+// STREET LIGHTING GENERATION
+// ============================================================================
+
 void generateRoadLights() {
-  // Note: Park lights are now generated within generateParkBlock()
+  // Note: Park lights are generated within generateParkBlock()
   // This function only handles street/road lighting
   
   int halfGrid = cityGridSize / 2;
@@ -631,7 +622,7 @@ void generateRoadLights() {
     for (int gz = -halfGrid; gz <= halfGrid; gz++) {
       double blockWorldZ = gz * totalBlockSize;
       
-      // Place lamps along the length of this road segment
+      // Place lamps along road segment
       for (int offset = 0; offset < blockSize; offset += lampSpacing) {
         // Lamps on both sides of the road
         for (int side = -1; side <= 1; side += 2) {
@@ -640,7 +631,7 @@ void generateRoadLights() {
           lamp.z = blockWorldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
           lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
           lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-          lamp.isWorking = (rand() % 100) < 65; // 65% are working, 35% broken for atmosphere
+          lamp.isWorking = (rand() % 100) < 65;  // 65% working, 35% broken
           
           streetLamps.push_back(lamp);
         }
@@ -655,7 +646,7 @@ void generateRoadLights() {
     for (int gx = -halfGrid; gx <= halfGrid; gx++) {
       double blockWorldX = gx * totalBlockSize;
       
-      // Place lamps along the length of this road segment
+      // Place lamps along road segment
       for (int offset = 0; offset < blockSize; offset += lampSpacing) {
         // Lamps on both sides of the road
         for (int side = -1; side <= 1; side += 2) {
@@ -675,7 +666,10 @@ void generateRoadLights() {
   std::cout << "Generated " << streetLamps.size() << " total lamps (streets + parks)" << std::endl;
 }
 
-// Initialize ambient objects (trash, debris, etc.)
+// ============================================================================
+// AMBIENT OBJECT INITIALIZATION
+// ============================================================================
+
 void initializeAmbientObjects() {
   ambientObjects.clear();
   
@@ -684,7 +678,7 @@ void initializeAmbientObjects() {
     double x = (rand() / double(RAND_MAX) - 0.5) * worldSize * 1.5;
     double z = (rand() / double(RAND_MAX) - 0.5) * worldSize * 1.5;
     
-    // Don't place too close to buildings
+    // Check distance to buildings
     bool tooClose = false;
     for (const auto& building : buildings) {
       double dist = sqrt((x - building.x)*(x - building.x) + 

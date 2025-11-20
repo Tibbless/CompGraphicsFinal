@@ -1,6 +1,10 @@
 #include "eerie_city.h"
 
-// Global variable definitions
+// ============================================================================
+// GLOBAL VARIABLE DEFINITIONS
+// ============================================================================
+
+// Player/Camera state
 double playerX = 0.0;
 double playerZ = 0.0;
 double playerY = 2.0;
@@ -10,16 +14,19 @@ double walkSpeed = 0.4;
 double turnSpeed = 2.5;
 double pitchSpeed = 2.0;
 
+// World bounds and rendering
 double worldSize = 300.0;
-double fogDensity = 0.025;  // Updated to match new thick fog
+double fogDensity = 0.025;
 double fov = 70.0;
 
+// Time and atmospheric effects
 double timeOfDay = 22.0;
 double daySpeed = 0.01;
 bool autoTime = true;
 double flickerIntensity = 1.0;
 double noiseAmount = 0.03;
 
+// PS1-style dithering effect
 bool ditherEnabled = true;
 int ditherPattern[4][4] = {
   {0, 8, 2, 10},
@@ -28,11 +35,12 @@ int ditherPattern[4][4] = {
   {15, 7, 13, 5}
 };
 
-// Block system globals
+// Block system configuration
 int blockSize = 30;
 int roadWidth = 10;
-int cityGridSize = 8;  // Will create a 9x9 grid (-4 to +4)
+int cityGridSize = 8;  // Creates a 9x9 grid (-4 to +4)
 
+// World object collections
 std::vector<CityBlock> cityBlocks;
 std::vector<Building> buildings;
 std::vector<StreetLamp> streetLamps;
@@ -44,17 +52,24 @@ std::vector<Fence> fences;
 std::vector<Gravestone> gravestones;
 std::vector<Mausoleum> mausoleums;
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+// Print text using GLUT bitmap font
 void Print(const std::string& text) {
   for (char ch : text) {
     glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ch);
   }
 }
 
+// Print fatal error message and exit
 void Fatal(const std::string& message) {
   std::cerr << "FATAL ERROR: " << message << '\n';
   exit(1);
 }
 
+// Check for OpenGL errors
 void ErrCheck(const std::string& where) {
   int err = glGetError();
   if (err) {
@@ -62,22 +77,25 @@ void ErrCheck(const std::string& where) {
   }
 }
 
+// ============================================================================
+// LIGHTING SYSTEM
+// ============================================================================
+
 void initializeLighting() {
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0); // Reserved for minimal moonlight
   
-  // Stronger ambient light so surfaces are visible from all angles
-  // Increased from 0.03/0.03/0.05 to 0.15/0.15/0.18 for better omnidirectional lighting
+  // Stronger ambient light for omnidirectional visibility
   float ambient[] = {0.15f, 0.15f, 0.18f, 1.0f};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
   
-  // Enable two-sided lighting so backfaces are also lit
+  // Enable two-sided lighting so backfaces are lit
   glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
   
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
   
-  // Enable additional lights
+  // Enable additional lights:
   // LIGHT0: Moonlight
   // LIGHT1-LIGHT6: Street lamps (6 closest to player)
   // LIGHT7: Player personal light
@@ -92,37 +110,33 @@ void initializeLighting() {
 
 void initializeFog() {
   glEnable(GL_FOG);
-  glFogi(GL_FOG_MODE, GL_EXP2);  // Exponential squared for sharper falloff
+  glFogi(GL_FOG_MODE, GL_EXP2);  // Exponential squared for sharp falloff
   
-  // Darker, more oppressive fog color for horror atmosphere
+  // Dark, oppressive fog for horror atmosphere
   float fogColor[] = {0.05f, 0.04f, 0.08f, 1.0f};
   glFogfv(GL_FOG_COLOR, fogColor);
   
-  // Much denser fog for ~50ft (15 units) visibility with sharp cutoff
-  // Increased from 0.008 to 0.025 for much thicker fog
+  // Dense fog for ~50ft (15 units) visibility with sharp cutoff
   glFogf(GL_FOG_DENSITY, 0.025f);
   
-  glHint(GL_FOG_HINT, GL_NICEST);  // Best quality fog rendering
+  glHint(GL_FOG_HINT, GL_NICEST);
 }
 
 void updateLighting() {
-  // Brighter moonlight for better visibility of distant silhouettes
-  // Increased from 0.02/0.02/0.04 to 0.08/0.08/0.12
+  // Moonlight for distant visibility
   float moonR = 0.08f;
   float moonG = 0.08f;
   float moonB = 0.12f;
   
-  // Position moon at an angle (not directly overhead) - this creates more dramatic shadows
-  // Position it high and to the side for atmospheric effect
-  float lightPos[] = {50.0f, 80.0f, -30.0f, 1.0f}; // Was (0, 100, 0)
+  // Position moon at an angle for dramatic shadows
+  float lightPos[] = {50.0f, 80.0f, -30.0f, 1.0f};
   float lightColor[] = {moonR, moonG, moonB, 1.0f};
   
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
   glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
   
-  // Add attenuation to moonlight so it's weaker up close (player light dominates)
-  // but still provides some ambient light at distance
+  // Add attenuation so moonlight is weaker up close
   glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0f);
   glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.001f);
   glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.00001f);
@@ -130,8 +144,6 @@ void updateLighting() {
 
 void setupStreetLampLights() {
   // Find the 6 closest working street lamps to the player
-  // We have 8 lights total: LIGHT0=moon, LIGHT1-6=lamps, LIGHT7=player
-  
   const int MAX_LAMP_LIGHTS = 6;
   int closestLamps[MAX_LAMP_LIGHTS];
   float closestDistances[MAX_LAMP_LIGHTS];
@@ -146,7 +158,6 @@ void setupStreetLampLights() {
   for (size_t lampIdx = 0; lampIdx < streetLamps.size(); lampIdx++) {
     const StreetLamp& lamp = streetLamps[lampIdx];
     
-    // Skip broken lamps
     if (!lamp.isWorking) continue;
     
     // Calculate distance to player
@@ -177,7 +188,7 @@ void setupStreetLampLights() {
     if (closestLamps[i] >= 0) {
       const StreetLamp& lamp = streetLamps[closestLamps[i]];
       
-      // Calculate flicker - much slower now (0.5 instead of 10.0)
+      // Calculate flicker effect
       float flicker = 0.7f + sin(timeOfDay * 0.5 + lamp.flickerPhase) * 0.3f * flickerIntensity;
       flicker = fmax(0.3f, fmin(1.0f, flicker));
       
@@ -189,7 +200,6 @@ void setupStreetLampLights() {
       float lightPos[] = {(float)lamp.x, (float)(lamp.height + 0.4f), (float)lamp.z, 1.0f};
       float lightColor[] = {lampR, lampG, lampB, 1.0f};
       
-      // Setup attenuation for falloff
       glLightfv(lightNum, GL_POSITION, lightPos);
       glLightfv(lightNum, GL_DIFFUSE, lightColor);
       glLightfv(lightNum, GL_SPECULAR, lightColor);
@@ -204,35 +214,40 @@ void setupStreetLampLights() {
     }
   }
   
-  // Setup player personal light (LIGHT7) - follows the player
+  // Setup player personal light (LIGHT7)
   float playerLightPos[] = {(float)playerX, (float)playerY, (float)playerZ, 1.0f};
   
   // Bright light with strong ambient component for omnidirectional effect
-  // This ensures surfaces are lit regardless of which way they're facing
-  float playerLightDiffuse[] = {0.8f, 0.8f, 0.9f, 1.0f};  // Directional component
-  float playerLightAmbient[] = {0.4f, 0.4f, 0.45f, 1.0f}; // Strong ambient for all-around lighting
+  float playerLightDiffuse[] = {0.8f, 0.8f, 0.9f, 1.0f};
+  float playerLightAmbient[] = {0.4f, 0.4f, 0.45f, 1.0f};
   
   glLightfv(GL_LIGHT7, GL_POSITION, playerLightPos);
   glLightfv(GL_LIGHT7, GL_DIFFUSE, playerLightDiffuse);
-  glLightfv(GL_LIGHT7, GL_AMBIENT, playerLightAmbient);  // Add ambient component
+  glLightfv(GL_LIGHT7, GL_AMBIENT, playerLightAmbient);
   glLightfv(GL_LIGHT7, GL_SPECULAR, playerLightDiffuse);
   
-  // Much wider range - reduced attenuation for ~25ft clear visibility
+  // Wider range for ~25ft clear visibility
   glLightf(GL_LIGHT7, GL_CONSTANT_ATTENUATION, 1.0f);
   glLightf(GL_LIGHT7, GL_LINEAR_ATTENUATION, 0.02f);
   glLightf(GL_LIGHT7, GL_QUADRATIC_ATTENUATION, 0.003f);
 }
 
+// ============================================================================
+// MAIN ENTRY POINT
+// ============================================================================
+
 int main(int argc, char* argv[]) {
   srand(static_cast<unsigned int>(time(nullptr)));
   
+  // Initialize GLUT
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
   glutInitWindowSize(800, 600);
   glutCreateWindow("Eerie City - PS1 Horror Aesthetic [Block-Based]");
 
+  // OpenGL state setup
   glEnable(GL_DEPTH_TEST);
-  glClearColor(0.05f, 0.04f, 0.08f, 1.0f);  // Match new darker fog color
+  glClearColor(0.05f, 0.04f, 0.08f, 1.0f);
 
   std::cout << "\n=== Initializing Eerie City (Block-Based) ===" << std::endl;
   std::cout << "Block size: " << blockSize << " units" << std::endl;
@@ -240,6 +255,7 @@ int main(int argc, char* argv[]) {
   std::cout << "City grid: " << (cityGridSize + 1) << "x" << (cityGridSize + 1) << " blocks" << std::endl;
   std::cout << std::endl;
   
+  // Generate world
   initializeCityGrid();
   generateRoadLights();
   initializeAmbientObjects();
@@ -247,12 +263,15 @@ int main(int argc, char* argv[]) {
   initializeFog();
   
   std::cout << "\n=== City Generation Complete ===" << std::endl;
-   
+  
+  // Register callbacks
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutSpecialFunc(special);
   glutKeyboardFunc(key);
   glutIdleFunc(idle);
+  
+  // Start main loop
   glutMainLoop();
   
   return 0;

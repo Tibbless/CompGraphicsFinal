@@ -8,6 +8,7 @@
 #include <ctime>
 #include <cmath>
 
+// Platform-specific OpenGL includes
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <OpenGL/gl.h>
@@ -28,7 +29,10 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// Player/Camera globals
+// ============================================================================
+// PLAYER AND CAMERA GLOBALS
+// ============================================================================
+
 extern double playerX;
 extern double playerZ;
 extern double playerY;
@@ -38,30 +42,41 @@ extern double walkSpeed;
 extern double turnSpeed;
 extern double pitchSpeed;
 
-// World settings
+// ============================================================================
+// WORLD AND RENDERING SETTINGS
+// ============================================================================
+
 extern double worldSize;
 extern double fogDensity;
-
-// View settings
 extern double fov;
 
-// Time and atmospheric effects
+// ============================================================================
+// TIME AND ATMOSPHERIC EFFECTS
+// ============================================================================
+
 extern double timeOfDay;
 extern double daySpeed;
 extern bool autoTime;
 extern double flickerIntensity;
 extern double noiseAmount;
 
-// Dithering effect
+// PS1-style dithering effect
 extern bool ditherEnabled;
 extern int ditherPattern[4][4];
 
-// Block system settings
+// ============================================================================
+// BLOCK SYSTEM SETTINGS
+// ============================================================================
+
 extern int blockSize;
 extern int roadWidth;
 extern int cityGridSize;
 
-// Block types
+// ============================================================================
+// ENUMERATIONS
+// ============================================================================
+
+// Block types for city generation
 enum BlockType {
   BLOCK_EMPTY = 0,
   BLOCK_BUILDING = 1,
@@ -71,93 +86,101 @@ enum BlockType {
   BLOCK_GRAVEYARD = 5
 };
 
-// Tree types for variety
+// Tree types for visual variety
 enum TreeType {
-  TREE_LAYERED = 0,    // Original - distinct foliage clusters with visible trunk
-  TREE_DEAD = 1,       // Skeletal - just spiky branches, no leaves
-  TREE_TWISTED = 2     // Gnarled - irregular asymmetric branches with sparse foliage
+  TREE_LAYERED = 0,    // Distinct foliage clusters with visible trunk
+  TREE_DEAD = 1,       // Skeletal branches without leaves
+  TREE_TWISTED = 2     // Irregular asymmetric branches with sparse foliage
 };
 
-// City block structure
+// ============================================================================
+// STRUCTURE DEFINITIONS
+// ============================================================================
+
+// City block structure - represents one grid cell in the city
 struct CityBlock {
-  int gridX, gridZ;
-  double worldX, worldZ;
-  BlockType type;
-  std::vector<int> buildingIndices;  // Indices into buildings vector
-  std::vector<int> lampIndices;      // Indices into streetLamps vector
+  int gridX, gridZ;                      // Grid coordinates
+  double worldX, worldZ;                  // World position
+  BlockType type;                         // Type of block
+  std::vector<int> buildingIndices;       // References to buildings in this block
+  std::vector<int> lampIndices;           // References to street lamps in this block
 };
 
-// Building structure
+// Building structure - procedurally generated structures
 struct Building {
-  double x, z;
-  double width, depth, height;
-  double rotation;
-  float r, g, b;
-  int buildingType;
-  bool hasWindows;
-  int windowPattern;
+  double x, z;                            // World position
+  double width, depth, height;            // Dimensions
+  double rotation;                        // Y-axis rotation in degrees
+  float r, g, b;                          // Color
+  int buildingType;                       // Visual style variation
+  bool hasWindows;                        // Whether to render windows
+  int windowPattern;                      // Window layout pattern
 };
 
-// Street lamp structure
+// Street lamp structure - light sources throughout the city
 struct StreetLamp {
-  double x, z;
-  double height;
-  float flickerPhase;
-  bool isWorking;
+  double x, z;                            // World position
+  double height;                          // Height of lamp post
+  float flickerPhase;                     // Phase offset for flicker animation
+  bool isWorking;                         // Whether lamp is functional
 };
 
-// Ambient object structure (trash, debris, etc)
+// Ambient object structure - environmental details
 struct AmbientObject {
-  double x, z;
-  double rotation;
-  int objectType;
-  float scale;
+  double x, z;                            // World position
+  double rotation;                        // Y-axis rotation
+  int objectType;                         // Visual type (trash, debris, etc)
+  float scale;                            // Size multiplier
 };
 
-// Tree structure for parks
+// Tree structure - park and graveyard vegetation
 struct Tree {
-  double x, z;
-  double height;
-  float trunkR, trunkG, trunkB;
-  float leavesR, leavesG, leavesB;
-  float scale;
-  TreeType type;  // NEW: Determines which drawing function to use
+  double x, z;                            // World position
+  double height;                          // Tree height
+  float trunkR, trunkG, trunkB;           // Trunk color
+  float leavesR, leavesG, leavesB;        // Foliage color
+  float scale;                            // Size multiplier
+  TreeType type;                          // Visual style
 };
 
-// Bench structure for parks
+// Bench structure - park seating
 struct Bench {
-  double x, z;
-  double rotation;
+  double x, z;                            // World position
+  double rotation;                        // Y-axis rotation
 };
 
-// Smokestack structure for industrial blocks
+// Smokestack structure - industrial area features
 struct Smokestack {
-  double x, z;
-  double height;
-  float radius;
+  double x, z;                            // World position
+  double height;                          // Stack height
+  float radius;                           // Base radius
 };
 
-// Chain-link fence structure for industrial blocks
+// Chain-link fence structure - perimeter fencing
 struct Fence {
-  double x1, z1;  // Start point
-  double x2, z2;  // End point
-  double height;
+  double x1, z1;                          // Start point
+  double x2, z2;                          // End point
+  double height;                          // Fence height
 };
 
-// Gravestone structure for graveyards
+// Gravestone structure - cemetery markers
 struct Gravestone {
-  double x, z;
-  double width, height, depth;
-  double rotation;
-  int stoneType;  // 0=cross, 1=rounded top, 2=flat top, 3=obelisk
+  double x, z;                            // World position
+  double width, height, depth;            // Dimensions
+  double rotation;                        // Y-axis rotation
+  int stoneType;                          // Visual style (0=cross, 1=rounded, 2=flat, 3=obelisk)
 };
 
-// Mausoleum structure for graveyards
+// Mausoleum structure - large cemetery structures
 struct Mausoleum {
-  double x, z;
-  double width, depth, height;
-  double rotation;
+  double x, z;                            // World position
+  double width, depth, height;            // Dimensions
+  double rotation;                        // Y-axis rotation
 };
+
+// ============================================================================
+// GLOBAL OBJECT VECTORS
+// ============================================================================
 
 extern std::vector<CityBlock> cityBlocks;
 extern std::vector<Building> buildings;
@@ -170,12 +193,18 @@ extern std::vector<Fence> fences;
 extern std::vector<Gravestone> gravestones;
 extern std::vector<Mausoleum> mausoleums;
 
-// Function declarations
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 void Print(const std::string& text);
 void Fatal(const std::string& message);
 void ErrCheck(const std::string& where);
 
-// Initialization functions
+// ============================================================================
+// INITIALIZATION FUNCTIONS
+// ============================================================================
+
 void initializeLighting();
 void updateLighting();
 void setupStreetLampLights();
@@ -185,18 +214,23 @@ void generateParkBlock(CityBlock& block);
 void generateIndustrialBlock(CityBlock& block);
 void generateGraveyardBlock(CityBlock& block);
 void generateRoadLights();
-void generateRoadLights();
 void initializeAmbientObjects();
 void initializeFog();
 
-// Drawing functions
+// ============================================================================
+// DRAWING FUNCTIONS
+// ============================================================================
+
 void drawBuilding(const Building& building);
 void drawStreetLamp(const StreetLamp& lamp);
 void drawAmbientObject(const AmbientObject& obj);
-void drawTree(const Tree& tree);  // Main dispatcher
-void drawLayeredTree(const Tree& tree);
-void drawDeadTree(const Tree& tree);
-void drawTwistedTree(const Tree& tree);
+
+// Tree drawing functions
+void drawTree(const Tree& tree);          // Main dispatcher function
+void drawLayeredTree(const Tree& tree);   // Layered foliage style
+void drawDeadTree(const Tree& tree);      // Skeletal style
+void drawTwistedTree(const Tree& tree);   // Twisted/gnarled style
+
 void drawBench(const Bench& bench);
 void drawSmokestack(const Smokestack& stack);
 void drawFence(const Fence& fence);
@@ -205,10 +239,15 @@ void drawMausoleum(const Mausoleum& mausoleum);
 void drawGroundPlane();
 void drawRoads();
 void drawSky();
+
+// PS1 visual effects
 void applyDitherEffect();
 void applyScreenDistortion();
 
-// Callback functions
+// ============================================================================
+// CALLBACK FUNCTIONS
+// ============================================================================
+
 void display();
 void reshape(int width, int height);
 void key(unsigned char ch, int x, int y);

@@ -2,6 +2,10 @@
 #include <sstream>
 #include <iomanip>
 
+// ============================================================================
+// DISPLAY CALLBACK
+// ============================================================================
+
 void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
@@ -9,7 +13,7 @@ void display() {
   // Draw sky background first
   drawSky();
   
-  // First-person camera - SET UP CAMERA FIRST
+  // Setup first-person camera
   double lookX = playerX + sin(playerAngle * M_PI / 180.0) * cos(playerPitch * M_PI / 180.0);
   double lookY = playerY + sin(playerPitch * M_PI / 180.0);
   double lookZ = playerZ - cos(playerAngle * M_PI / 180.0) * cos(playerPitch * M_PI / 180.0);
@@ -18,15 +22,16 @@ void display() {
             lookX, lookY, lookZ,
             0.0, 1.0, 0.0);
   
-  // CRITICAL: Update lighting AFTER camera is set up
+  // Update lighting after camera is set up
   // This ensures light positions are in the correct coordinate space
   updateLighting();
   setupStreetLampLights();
   
-  // Draw world
+  // Draw world geometry
   drawGroundPlane();
   drawRoads();
   
+  // Draw all buildings
   for (const auto& building : buildings) {
     drawBuilding(building);
   }
@@ -58,23 +63,24 @@ void display() {
     drawMausoleum(m);
   }
   
+  // Draw street lamps
   for (const auto& lamp : streetLamps) {
     drawStreetLamp(lamp);
   }
   
-  // Ambient objects disabled - too dark/cluttered with new lighting
-  // Uncomment to re-enable:
-  // for (const auto& obj : ambientObjects) {
-  //   drawAmbientObject(obj);
-  // }
+  // Note: Ambient objects disabled due to darkness/clutter with new lighting
   
-  // Apply PS1 effects
+  // Apply PS1-style visual effects
   applyDitherEffect();
   
+  // ========================================
   // Draw HUD
+  // ========================================
+  
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
   
+  // Switch to 2D orthographic projection
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
@@ -90,6 +96,7 @@ void display() {
   glPushMatrix();
   glLoadIdentity();
   
+  // Draw HUD text
   glColor3f(0.7f, 0.6f, 0.5f);
   
   glRasterPos2f(10, 20);
@@ -134,6 +141,7 @@ void display() {
   glRasterPos2f(10, 235);
   Print("  ESC - Exit");
   
+  // Display player stats
   glRasterPos2f(10, 260);
   std::ostringstream pos;
   pos << std::fixed << std::setprecision(1);
@@ -168,7 +176,7 @@ void display() {
           << gravestones.size() << " graves";
   Print(objects.str());
   
-  // Vignette effect - darken the edges of the screen for horror atmosphere
+  // Draw vignette effect for horror atmosphere
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   
@@ -216,6 +224,7 @@ void display() {
   
   glDisable(GL_BLEND);
   
+  // Restore 3D projection
   glPopMatrix();
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
@@ -229,6 +238,10 @@ void display() {
   glutSwapBuffers();
 }
 
+// ============================================================================
+// RESHAPE CALLBACK
+// ============================================================================
+
 void reshape(int width, int height) {
   glViewport(0, 0, width, height);
   glMatrixMode(GL_PROJECTION);
@@ -241,12 +254,17 @@ void reshape(int width, int height) {
   glLoadIdentity();
 }
 
+// ============================================================================
+// KEYBOARD CALLBACK
+// ============================================================================
+
 void key(unsigned char ch, int /*x*/, int /*y*/) {
   switch(ch) {
     case 27: // ESC
       exit(0);
       break;
       
+    // Reset player position
     case 'r':
     case 'R':
       playerX = 0.0;
@@ -255,24 +273,28 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
       playerPitch = 0.0;
       break;
       
+    // Forward movement
     case 'w':
     case 'W':
       playerX += sin(playerAngle * M_PI / 180.0) * walkSpeed;
       playerZ -= cos(playerAngle * M_PI / 180.0) * walkSpeed;
       break;
       
+    // Backward movement
     case 's':
     case 'S':
       playerX -= sin(playerAngle * M_PI / 180.0) * walkSpeed;
       playerZ += cos(playerAngle * M_PI / 180.0) * walkSpeed;
       break;
       
+    // Turn left
     case 'a':
     case 'A':
       playerAngle -= turnSpeed;
       if (playerAngle < 0) playerAngle += 360.0;
       break;
       
+    // Turn right or toggle dither (with shift)
     case 'd':
       playerAngle += turnSpeed;
       if (playerAngle >= 360) playerAngle -= 360.0;
@@ -282,53 +304,62 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
       ditherEnabled = !ditherEnabled;
       break;
       
+    // Strafe left
     case 'q':
     case 'Q':
       playerX -= cos(playerAngle * M_PI / 180.0) * walkSpeed;
       playerZ -= sin(playerAngle * M_PI / 180.0) * walkSpeed;
       break;
       
+    // Strafe right
     case 'e':
     case 'E':
       playerX += cos(playerAngle * M_PI / 180.0) * walkSpeed;
       playerZ += sin(playerAngle * M_PI / 180.0) * walkSpeed;
       break;
       
+    // Look up
     case 'z':
     case 'Z':
       playerPitch += pitchSpeed;
       if (playerPitch > 89.0) playerPitch = 89.0;
       break;
       
+    // Look down
     case 'x':
     case 'X':
       playerPitch -= pitchSpeed;
       if (playerPitch < -89.0) playerPitch = -89.0;
       break;
       
+    // Toggle auto-time
     case 't':
     case 'T':
       autoTime = !autoTime;
       break;
       
+    // Increase noise
     case 'n':
     case 'N':
       noiseAmount += 0.01;
       if (noiseAmount > 0.2) noiseAmount = 0.2;
       break;
       
+    // Decrease noise
     case 'm':
     case 'M':
       noiseAmount -= 0.01;
       if (noiseAmount < 0.0) noiseAmount = 0.0;
       break;
       
+    // Increase flicker
     case 'f':
     case 'F':
       flickerIntensity += 0.1;
       if (flickerIntensity > 2.0) flickerIntensity = 2.0;
       break;
       
+    // Decrease flicker
     case 'g':
     case 'G':
       flickerIntensity -= 0.1;
@@ -337,12 +368,16 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
       
     case 'v':
     case 'V':
-      // Toggle vertical sync / vsync placeholder
+      // Toggle vertical sync placeholder
       break;
   }
   
   glutPostRedisplay();
 }
+
+// ============================================================================
+// SPECIAL KEY CALLBACK
+// ============================================================================
 
 void special(int key, int /*x*/, int /*y*/) {
   switch(key) {
@@ -370,7 +405,12 @@ void special(int key, int /*x*/, int /*y*/) {
   glutPostRedisplay();
 }
 
+// ============================================================================
+// IDLE CALLBACK
+// ============================================================================
+
 void idle() {
+  // Advance time if auto-time is enabled
   if (autoTime) {
     timeOfDay += daySpeed;
     if (timeOfDay >= 24.0) timeOfDay -= 24.0;
