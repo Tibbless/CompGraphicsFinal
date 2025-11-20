@@ -48,35 +48,135 @@ void drawBuilding(const Building& building) {
   
   glEnd();
   
-  // Windows with eerie glow - disable lighting so they emit light
+  // Windows with eerie glow on ALL FOUR FACES - disable lighting so they emit light
   if (building.hasWindows) {
     glDisable(GL_LIGHTING);
     
     int windowsPerFloor = 2 + (building.windowPattern % 3);
     int numFloors = (int)(building.height / 3.0);
     
+    // Calculate window spacing based on building dimensions
+    // Ensure windows fit properly even on narrow buildings
+    float baseWindowWidth = 0.25f;
+    float baseWindowHeight = 0.6f;
+    float minWindowWidth = 0.15f;  // Minimum window size
+    
+    // FRONT FACE (Z+)
+    // Calculate actual number of windows that will fit
+    float availableWidth = building.width * 1.4;
+    int frontWindowCount = fmax(1, (int)(availableWidth / (baseWindowWidth * 2.0)));
+    if (frontWindowCount > windowsPerFloor) frontWindowCount = windowsPerFloor;
+    
+    // Scale window width to fit available space, but not smaller than minimum
+    float frontWindowWidth = fmax(minWindowWidth, fmin(baseWindowWidth, availableWidth / (frontWindowCount * 2.5)));
+    
     for (int floor = 1; floor < numFloors; floor++) {
-      for (int w = 0; w < windowsPerFloor; w++) {
+      for (int w = 0; w < frontWindowCount; w++) {
         double windowY = floor * 3.0;
-        double windowX = -building.width * 0.8 + (w * building.width * 1.6 / windowsPerFloor);
+        double spacing = availableWidth / (frontWindowCount + 1);
+        double windowX = -building.width * 0.8 + spacing * (w + 1);
         
         int windowSeed = (int)(building.x * 100 + building.z * 100 + floor * 10 + w);
         
         if ((windowSeed % 100) < 30) {
-          float glowR = 1.0f;
-          float glowG = 0.8f;
-          float glowB = 0.4f;
-          
-          glColor3f(glowR, glowG, glowB);
+          glColor3f(1.0f, 0.8f, 0.4f);
         } else {
           glColor3f(0.08f, 0.08f, 0.12f);
         }
         
         glBegin(GL_QUADS);
-        glVertex3f(windowX - 0.4f, windowY - 0.3f, building.depth + 0.01f);
-        glVertex3f(windowX + 0.4f, windowY - 0.3f, building.depth + 0.01f);
-        glVertex3f(windowX + 0.4f, windowY + 0.6f, building.depth + 0.01f);
-        glVertex3f(windowX - 0.4f, windowY + 0.6f, building.depth + 0.01f);
+        glVertex3f(windowX - frontWindowWidth, windowY - 0.3f, building.depth + 0.01f);
+        glVertex3f(windowX + frontWindowWidth, windowY - 0.3f, building.depth + 0.01f);
+        glVertex3f(windowX + frontWindowWidth, windowY + baseWindowHeight, building.depth + 0.01f);
+        glVertex3f(windowX - frontWindowWidth, windowY + baseWindowHeight, building.depth + 0.01f);
+        glEnd();
+      }
+    }
+    
+    // BACK FACE (Z-)
+    int backWindowCount = fmax(1, (int)(availableWidth / (baseWindowWidth * 2.0)));
+    if (backWindowCount > windowsPerFloor) backWindowCount = windowsPerFloor;
+    
+    float backWindowWidth = fmax(minWindowWidth, fmin(baseWindowWidth, availableWidth / (backWindowCount * 2.5)));
+    
+    for (int floor = 1; floor < numFloors; floor++) {
+      for (int w = 0; w < backWindowCount; w++) {
+        double windowY = floor * 3.0;
+        double spacing = availableWidth / (backWindowCount + 1);
+        double windowX = -building.width * 0.8 + spacing * (w + 1);
+        
+        int windowSeed = (int)(building.x * 100 + building.z * 100 + floor * 10 + w + 1000);
+        
+        if ((windowSeed % 100) < 30) {
+          glColor3f(1.0f, 0.8f, 0.4f);
+        } else {
+          glColor3f(0.08f, 0.08f, 0.12f);
+        }
+        
+        glBegin(GL_QUADS);
+        glVertex3f(windowX - backWindowWidth, windowY - 0.3f, -building.depth - 0.01f);
+        glVertex3f(windowX + backWindowWidth, windowY - 0.3f, -building.depth - 0.01f);
+        glVertex3f(windowX + backWindowWidth, windowY + baseWindowHeight, -building.depth - 0.01f);
+        glVertex3f(windowX - backWindowWidth, windowY + baseWindowHeight, -building.depth - 0.01f);
+        glEnd();
+      }
+    }
+    
+    // RIGHT FACE (X+)
+    float availableDepth = building.depth * 1.4;
+    int rightWindowCount = fmax(1, (int)(availableDepth / (baseWindowWidth * 2.0)));
+    if (rightWindowCount > windowsPerFloor) rightWindowCount = windowsPerFloor;
+    
+    float rightWindowWidth = fmax(minWindowWidth, fmin(baseWindowWidth, availableDepth / (rightWindowCount * 2.5)));
+    
+    for (int floor = 1; floor < numFloors; floor++) {
+      for (int w = 0; w < rightWindowCount; w++) {
+        double windowY = floor * 3.0;
+        double spacing = availableDepth / (rightWindowCount + 1);
+        double windowZ = -building.depth * 0.8 + spacing * (w + 1);
+        
+        int windowSeed = (int)(building.x * 100 + building.z * 100 + floor * 10 + w + 2000);
+        
+        if ((windowSeed % 100) < 30) {
+          glColor3f(1.0f, 0.8f, 0.4f);
+        } else {
+          glColor3f(0.08f, 0.08f, 0.12f);
+        }
+        
+        glBegin(GL_QUADS);
+        glVertex3f(building.width + 0.01f, windowY - 0.3f, windowZ - rightWindowWidth);
+        glVertex3f(building.width + 0.01f, windowY - 0.3f, windowZ + rightWindowWidth);
+        glVertex3f(building.width + 0.01f, windowY + baseWindowHeight, windowZ + rightWindowWidth);
+        glVertex3f(building.width + 0.01f, windowY + baseWindowHeight, windowZ - rightWindowWidth);
+        glEnd();
+      }
+    }
+    
+    // LEFT FACE (X-)
+    int leftWindowCount = fmax(1, (int)(availableDepth / (baseWindowWidth * 2.0)));
+    if (leftWindowCount > windowsPerFloor) leftWindowCount = windowsPerFloor;
+    
+    float leftWindowWidth = fmax(minWindowWidth, fmin(baseWindowWidth, availableDepth / (leftWindowCount * 2.5)));
+    
+    for (int floor = 1; floor < numFloors; floor++) {
+      for (int w = 0; w < leftWindowCount; w++) {
+        double windowY = floor * 3.0;
+        double spacing = availableDepth / (leftWindowCount + 1);
+        double windowZ = -building.depth * 0.8 + spacing * (w + 1);
+        
+        int windowSeed = (int)(building.x * 100 + building.z * 100 + floor * 10 + w + 3000);
+        
+        if ((windowSeed % 100) < 30) {
+          glColor3f(1.0f, 0.8f, 0.4f);
+        } else {
+          glColor3f(0.08f, 0.08f, 0.12f);
+        }
+        
+        glBegin(GL_QUADS);
+        glVertex3f(-building.width - 0.01f, windowY - 0.3f, windowZ - leftWindowWidth);
+        glVertex3f(-building.width - 0.01f, windowY - 0.3f, windowZ + leftWindowWidth);
+        glVertex3f(-building.width - 0.01f, windowY + baseWindowHeight, windowZ + leftWindowWidth);
+        glVertex3f(-building.width - 0.01f, windowY + baseWindowHeight, windowZ - leftWindowWidth);
         glEnd();
       }
     }
@@ -932,6 +1032,443 @@ void drawBench(const Bench& bench) {
   glVertex3f(0.8f, 0.4f, -0.25f);
   
   glEnd();
+  
+  glPopMatrix();
+}
+
+void drawSmokestack(const Smokestack& stack) {
+  glPushMatrix();
+  glTranslated(stack.x, 0.0, stack.z);
+  
+  // Dark industrial gray color with rust
+  glColor3f(0.18f, 0.16f, 0.14f);
+  
+  int segments = 8;
+  
+  glBegin(GL_QUADS);
+  
+  // Draw cylindrical smokestack
+  for (int i = 0; i < segments; i++) {
+    float angle1 = (i / (float)segments) * 2.0f * M_PI;
+    float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
+    
+    float x1 = cos(angle1) * stack.radius;
+    float z1 = sin(angle1) * stack.radius;
+    float x2 = cos(angle2) * stack.radius;
+    float z2 = sin(angle2) * stack.radius;
+    
+    // Side of cylinder
+    glVertex3f(x1, 0.0f, z1);
+    glVertex3f(x2, 0.0f, z2);
+    glVertex3f(x2, stack.height, z2);
+    glVertex3f(x1, stack.height, z1);
+  }
+  
+  glEnd();
+  
+  // Draw top cap (slightly larger for industrial look)
+  glColor3f(0.15f, 0.13f, 0.12f);
+  float capRadius = stack.radius * 1.1f;
+  
+  glBegin(GL_TRIANGLE_FAN);
+  glVertex3f(0.0f, stack.height, 0.0f);
+  for (int i = 0; i <= segments; i++) {
+    float angle = (i / (float)segments) * 2.0f * M_PI;
+    glVertex3f(cos(angle) * capRadius, stack.height, sin(angle) * capRadius);
+  }
+  glEnd();
+  
+  glPopMatrix();
+}
+
+void drawFence(const Fence& fence) {
+  glDisable(GL_LIGHTING);
+  
+  // Dark metal fence color
+  glColor3f(0.25f, 0.25f, 0.27f);
+  
+  glLineWidth(2.0f);
+  
+  // Calculate fence direction
+  double dx = fence.x2 - fence.x1;
+  double dz = fence.z2 - fence.z1;
+  double length = sqrt(dx*dx + dz*dz);
+  
+  if (length < 0.1) return; // Skip zero-length fences
+  
+  // Normalize direction
+  dx /= length;
+  dz /= length;
+  
+  // Draw vertical posts every 3 units
+  int numPosts = (int)(length / 3.0) + 1;
+  
+  glBegin(GL_LINES);
+  
+  for (int i = 0; i <= numPosts; i++) {
+    double t = (i / (double)numPosts);
+    double px = fence.x1 + dx * length * t;
+    double pz = fence.z1 + dz * length * t;
+    
+    // Vertical post
+    glVertex3d(px, 0.0, pz);
+    glVertex3d(px, fence.height, pz);
+  }
+  
+  // Draw horizontal rails (top, middle, bottom)
+  for (int rail = 0; rail < 3; rail++) {
+    double railHeight = fence.height * (0.2 + rail * 0.3);
+    
+    glVertex3d(fence.x1, railHeight, fence.z1);
+    glVertex3d(fence.x2, railHeight, fence.z2);
+  }
+  
+  // Draw diagonal cross-bracing for industrial look
+  int numCrosses = (int)(length / 6.0) + 1;
+  for (int i = 0; i < numCrosses; i++) {
+    double t1 = (i / (double)numCrosses);
+    double t2 = ((i + 1) / (double)numCrosses);
+    
+    double x1 = fence.x1 + dx * length * t1;
+    double z1 = fence.z1 + dz * length * t1;
+    double x2 = fence.x1 + dx * length * t2;
+    double z2 = fence.z1 + dz * length * t2;
+    
+    // X pattern
+    glVertex3d(x1, fence.height * 0.2, z1);
+    glVertex3d(x2, fence.height * 0.8, z2);
+    
+    glVertex3d(x1, fence.height * 0.8, z1);
+    glVertex3d(x2, fence.height * 0.2, z2);
+  }
+  
+  glEnd();
+  
+  glEnable(GL_LIGHTING);
+}
+
+void drawGravestone(const Gravestone& stone) {
+  glPushMatrix();
+  glTranslated(stone.x, 0.0, stone.z);
+  glRotated(stone.rotation, 0.0, 1.0, 0.0);
+  
+  // Stone gray color - weathered and dark
+  glColor3f(0.25f, 0.25f, 0.27f);
+  
+  switch(stone.stoneType) {
+    case 0: // Cross shape
+      glBegin(GL_QUADS);
+      // Vertical part - front
+      glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      
+      // Vertical part - back
+      glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      
+      // Vertical part - left
+      glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      
+      // Vertical part - right
+      glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      
+      // Vertical part - top
+      glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      
+      // Vertical part - bottom
+      glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      
+      // Horizontal cross bar - front
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      
+      // Horizontal cross bar - back
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      
+      // Horizontal cross bar - top
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      
+      // Horizontal cross bar - bottom
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      
+      // Horizontal cross bar - left
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      
+      // Horizontal cross bar - right
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glEnd();
+      break;
+      
+    case 1: // Rounded top (classic tombstone)
+      glBegin(GL_QUADS);
+      // Front face
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      
+      // Back face
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      
+      // Left face
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      
+      // Right face
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      
+      // Bottom
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glEnd();
+      
+      // Rounded top as 4 triangular faces forming a pyramid
+      glBegin(GL_TRIANGLES);
+      // Front slope
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Back slope
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Left slope
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Right slope
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      glEnd();
+      break;
+      
+    case 2: // Flat top
+    default:
+      glBegin(GL_QUADS);
+      // Front face
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      
+      // Back face
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      
+      // Left face
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      
+      // Right face
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      
+      // Top
+      glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      
+      // Bottom
+      glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glEnd();
+      break;
+      
+    case 3: // Obelisk (tall and narrow)
+      glBegin(GL_QUADS);
+      // Front face (tapered)
+      glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      
+      // Back face (tapered)
+      glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      
+      // Left face (tapered)
+      glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      
+      // Right face (tapered)
+      glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      
+      // Bottom
+      glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glEnd();
+      
+      // Pointed top as 4 triangular faces forming a pyramid
+      glBegin(GL_TRIANGLES);
+      // Front
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Back
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Left
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      
+      // Right
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glVertex3f(0.0f, stone.height, 0.0f);
+      glEnd();
+      break;
+  }
+  
+  glPopMatrix();
+}
+
+void drawMausoleum(const Mausoleum& mausoleum) {
+  glPushMatrix();
+  glTranslated(mausoleum.x, 0.0, mausoleum.z);
+  glRotated(mausoleum.rotation, 0.0, 1.0, 0.0);
+  
+  // Dark weathered stone
+  glColor3f(0.20f, 0.20f, 0.22f);
+  
+  glBegin(GL_QUADS);
+  
+  // Main structure - walls
+  // Front
+  glVertex3f(-mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  
+  // Back
+  glVertex3f(mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  
+  // Left
+  glVertex3f(-mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  
+  // Right
+  glVertex3f(mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  
+  glEnd();
+  
+  // Peaked roof
+  glColor3f(0.15f, 0.15f, 0.17f);
+  glBegin(GL_TRIANGLES);
+  
+  // Front triangle
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
+  
+  // Back triangle
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
+  
+  glEnd();
+  
+  // Roof sides
+  glBegin(GL_QUADS);
+  
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
+  glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
+  glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
+  
+  glEnd();
+  
+  // Dark entrance doorway (just a dark rectangle)
+  glDisable(GL_LIGHTING);
+  glColor3f(0.02f, 0.02f, 0.02f);
+  glBegin(GL_QUADS);
+  glVertex3f(-mausoleum.width * 0.25f, 0.1f, mausoleum.depth * 0.51f);
+  glVertex3f(mausoleum.width * 0.25f, 0.1f, mausoleum.depth * 0.51f);
+  glVertex3f(mausoleum.width * 0.25f, mausoleum.height * 0.5f, mausoleum.depth * 0.51f);
+  glVertex3f(-mausoleum.width * 0.25f, mausoleum.height * 0.5f, mausoleum.depth * 0.51f);
+  glEnd();
+  glEnable(GL_LIGHTING);
   
   glPopMatrix();
 }

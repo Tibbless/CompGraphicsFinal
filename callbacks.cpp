@@ -40,6 +40,24 @@ void display() {
     drawBench(bench);
   }
   
+  // Draw industrial elements
+  for (const auto& stack : smokestacks) {
+    drawSmokestack(stack);
+  }
+  
+  for (const auto& fence : fences) {
+    drawFence(fence);
+  }
+  
+  // Draw graveyard elements
+  for (const auto& stone : gravestones) {
+    drawGravestone(stone);
+  }
+  
+  for (const auto& m : mausoleums) {
+    drawMausoleum(m);
+  }
+  
   for (const auto& lamp : streetLamps) {
     drawStreetLamp(lamp);
   }
@@ -145,7 +163,9 @@ void display() {
   std::ostringstream objects;
   objects << "City: " << cityBlocks.size() << " blocks, "
           << buildings.size() << " buildings, " 
-          << streetLamps.size() << " lamps";
+          << streetLamps.size() << " lamps, "
+          << smokestacks.size() << " stacks, "
+          << gravestones.size() << " graves";
   Print(objects.str());
   
   // Vignette effect - darken the edges of the screen for horror atmosphere

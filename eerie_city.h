@@ -66,7 +66,9 @@ enum BlockType {
   BLOCK_EMPTY = 0,
   BLOCK_BUILDING = 1,
   BLOCK_PARK = 2,
-  BLOCK_PLAZA = 3
+  BLOCK_PLAZA = 3,
+  BLOCK_INDUSTRIAL = 4,
+  BLOCK_GRAVEYARD = 5
 };
 
 // Tree types for variety
@@ -128,12 +130,45 @@ struct Bench {
   double rotation;
 };
 
+// Smokestack structure for industrial blocks
+struct Smokestack {
+  double x, z;
+  double height;
+  float radius;
+};
+
+// Chain-link fence structure for industrial blocks
+struct Fence {
+  double x1, z1;  // Start point
+  double x2, z2;  // End point
+  double height;
+};
+
+// Gravestone structure for graveyards
+struct Gravestone {
+  double x, z;
+  double width, height, depth;
+  double rotation;
+  int stoneType;  // 0=cross, 1=rounded top, 2=flat top, 3=obelisk
+};
+
+// Mausoleum structure for graveyards
+struct Mausoleum {
+  double x, z;
+  double width, depth, height;
+  double rotation;
+};
+
 extern std::vector<CityBlock> cityBlocks;
 extern std::vector<Building> buildings;
 extern std::vector<StreetLamp> streetLamps;
 extern std::vector<AmbientObject> ambientObjects;
 extern std::vector<Tree> trees;
 extern std::vector<Bench> benches;
+extern std::vector<Smokestack> smokestacks;
+extern std::vector<Fence> fences;
+extern std::vector<Gravestone> gravestones;
+extern std::vector<Mausoleum> mausoleums;
 
 // Function declarations
 void Print(const std::string& text);
@@ -147,6 +182,8 @@ void setupStreetLampLights();
 void initializeCityGrid();
 void generateBuildingBlock(CityBlock& block);
 void generateParkBlock(CityBlock& block);
+void generateIndustrialBlock(CityBlock& block);
+void generateGraveyardBlock(CityBlock& block);
 void generateRoadLights();
 void generateRoadLights();
 void initializeAmbientObjects();
@@ -161,6 +198,10 @@ void drawLayeredTree(const Tree& tree);
 void drawDeadTree(const Tree& tree);
 void drawTwistedTree(const Tree& tree);
 void drawBench(const Bench& bench);
+void drawSmokestack(const Smokestack& stack);
+void drawFence(const Fence& fence);
+void drawGravestone(const Gravestone& stone);
+void drawMausoleum(const Mausoleum& mausoleum);
 void drawGroundPlane();
 void drawRoads();
 void drawSky();

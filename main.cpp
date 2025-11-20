@@ -39,6 +39,10 @@ std::vector<StreetLamp> streetLamps;
 std::vector<AmbientObject> ambientObjects;
 std::vector<Tree> trees;
 std::vector<Bench> benches;
+std::vector<Smokestack> smokestacks;
+std::vector<Fence> fences;
+std::vector<Gravestone> gravestones;
+std::vector<Mausoleum> mausoleums;
 
 void Print(const std::string& text) {
   for (char ch : text) {
