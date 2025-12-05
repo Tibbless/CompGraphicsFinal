@@ -51,10 +51,6 @@ void display() {
     drawSmokestack(stack);
   }
   
-  for (const auto& fence : fences) {
-    drawFence(fence);
-  }
-  
   // Draw graveyard elements
   for (const auto& stone : gravestones) {
     drawGravestone(stone);
@@ -67,6 +63,11 @@ void display() {
   // Draw street lamps
   for (const auto& lamp : streetLamps) {
     drawStreetLamp(lamp);
+  }
+  
+  // Draw fences LAST so chain-link is properly transparent
+  for (const auto& fence : fences) {
+    drawFence(fence);
   }
   
   // Note: Ambient objects disabled due to darkness/clutter with new lighting

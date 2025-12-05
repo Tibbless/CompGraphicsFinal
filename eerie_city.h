@@ -208,6 +208,7 @@ extern GLuint groundTexture;
 // Texture IDs - Nature
 extern GLuint leavesTexture;
 extern GLuint barkTexture;
+extern GLuint benchTexture;
 
 // Texture IDs - Metal and Lights
 extern GLuint metalTexture;

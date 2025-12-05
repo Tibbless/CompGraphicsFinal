@@ -62,6 +62,7 @@ GLuint groundTexture = 0;
 // Texture IDs - Nature
 GLuint leavesTexture = 0;
 GLuint barkTexture = 0;
+GLuint benchTexture = 0;
 
 // Texture IDs - Metal and Lights
 GLuint metalTexture = 0;
@@ -327,9 +328,14 @@ void initializeTextures() {
   sidewalkTexture = loadTexturePNG("textures/sidewalk.png");
   groundTexture = loadTexturePNG("textures/ground.png");
   
+  // Debug: Print texture IDs
+  std::cout << "DEBUG: brickTexture ID = " << brickTexture << std::endl;
+  std::cout << "DEBUG: groundTexture ID = " << groundTexture << std::endl;
+  
   std::cout << "\nNature Textures:" << std::endl;
   leavesTexture = loadTexturePNG("textures/leaves.png");
   barkTexture = loadTexturePNG("textures/bark.png");
+  benchTexture = loadTexturePNG("textures/bench.png");
   
   std::cout << "\nMetal and Light Textures:" << std::endl;
   metalTexture = loadTexturePNG("textures/metal.png");
@@ -400,7 +406,7 @@ int main(int argc, char* argv[]) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
   glutInitWindowSize(800, 600);
-  glutCreateWindow("Eerie City - PS1 Horror Aesthetic [Block-Based]");
+  glutCreateWindow("Nolan Tibbles - Final");
 
   // OpenGL state setup
   glEnable(GL_DEPTH_TEST);

@@ -1,4 +1,5 @@
 #include "eerie_city.h"
+#include <iostream>
 
 // ============================================================================
 // BUILDING RENDERING
@@ -17,10 +18,10 @@ void drawBuilding(const Building& building) {
   float jitter = 0.02f;
   glColor3f(building.r, building.g, building.b);
   
-  // Calculate texture coordinates based on building size
-  float texScaleW = building.width * 0.3f;
-  float texScaleD = building.depth * 0.3f;
-  float texScaleH = building.height * 0.15f;
+  // Buildings stay compact - they look good
+  float texScaleW = building.width * 1.2f;  // Keep this compact
+  float texScaleD = building.depth * 1.2f;  
+  float texScaleH = building.height * 0.6f;
   
   glBegin(GL_QUADS);
   
@@ -254,116 +255,223 @@ void drawStreetLamp(const StreetLamp& lamp) {
   glPushMatrix();
   glTranslated(lamp.x, 0.0, lamp.z);
   
-  // Lamp post
+  // Enable texturing for lamp post
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, metalTexture);
+  
+  // Lamp post with metal texture
   glColor3f(0.2f, 0.2f, 0.25f);
   glBegin(GL_QUADS);
   
+  float texH = lamp.height * 0.4f;  // Was 0.8, halved = less grainy
+  
+  // Front face
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-0.15f, 0.0f, 0.15f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(0.15f, 0.0f, 0.15f);
+  glTexCoord2f(1.0f, texH);
   glVertex3f(0.15f, lamp.height, 0.15f);
+  glTexCoord2f(0.0f, texH);
   glVertex3f(-0.15f, lamp.height, 0.15f);
   
+  // Back face
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(0.15f, 0.0f, -0.15f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-0.15f, 0.0f, -0.15f);
+  glTexCoord2f(1.0f, texH);
   glVertex3f(-0.15f, lamp.height, -0.15f);
+  glTexCoord2f(0.0f, texH);
   glVertex3f(0.15f, lamp.height, -0.15f);
   
+  // Right face
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(0.15f, 0.0f, 0.15f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(0.15f, 0.0f, -0.15f);
+  glTexCoord2f(1.0f, texH);
   glVertex3f(0.15f, lamp.height, -0.15f);
+  glTexCoord2f(0.0f, texH);
   glVertex3f(0.15f, lamp.height, 0.15f);
   
+  // Left face
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-0.15f, 0.0f, -0.15f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-0.15f, 0.0f, 0.15f);
+  glTexCoord2f(1.0f, texH);
   glVertex3f(-0.15f, lamp.height, 0.15f);
+  glTexCoord2f(0.0f, texH);
   glVertex3f(-0.15f, lamp.height, -0.15f);
   
   glEnd();
+  
+  // Switch to light texture for lamp housing
+  glBindTexture(GL_TEXTURE_2D, lightTexture);
   
   // Lamp head with appropriate brightness
   if (lamp.isWorking) {
     float flicker = 0.7f + sin(timeOfDay * 0.5 + lamp.flickerPhase) * 0.3f * flickerIntensity;
     flicker = fmax(0.3f, fmin(1.0f, flicker));
     
-    glDisable(GL_LIGHTING);
     glColor3f(0.9f * flicker, 0.7f * flicker, 0.4f * flicker);
     
     glBegin(GL_QUADS);
     
     float lampTop = lamp.height + 0.8f;
     
+    // Lamp housing faces with texture
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
     
     glEnd();
     
+    glDisable(GL_TEXTURE_2D);
+    
+    // Add glow effect with lamp_glow texture
+    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);  // Additive blending for glow
+    glBindTexture(GL_TEXTURE_2D, lampGlowTexture);
+    
+    glColor4f(1.0f * flicker, 0.8f * flicker, 0.5f * flicker, 0.8f);
+    
+    // Draw glow quad facing camera (billboard effect)
+    float glowSize = 1.5f;
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-glowSize, lampTop - 0.4f, -glowSize);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(glowSize, lampTop - 0.4f, -glowSize);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(glowSize, lampTop - 0.4f, glowSize);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-glowSize, lampTop - 0.4f, glowSize);
+    glEnd();
+    
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Reset to normal blending
+    glDisable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
+    
   } else {
-    // Broken lamp
+    // Broken lamp - dark housing
     glColor3f(0.1f, 0.1f, 0.1f);
     
     glBegin(GL_QUADS);
     
     float lampTop = lamp.height + 0.8f;
     
+    // Broken lamp housing faces (no texture, just dark)
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lampTop, 0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lampTop, 0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lampTop, -0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lampTop, -0.4f);
     
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(0.4f, lamp.height, -0.4f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(0.4f, lamp.height, 0.4f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-0.4f, lamp.height, 0.4f);
     
     glEnd();
+    glDisable(GL_TEXTURE_2D);
   }
   
   glPopMatrix();
@@ -426,26 +534,34 @@ void drawAmbientObject(const AmbientObject& obj) {
 // ============================================================================
 
 void drawGroundPlane() {
+  // Disable lighting and fog like roads for consistent visibility
+  glDisable(GL_LIGHTING);
+  glDisable(GL_FOG);
+  
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, groundTexture);
-  glColor3f(0.12f, 0.12f, 0.14f);
+  glColor3f(0.30f, 0.30f, 0.32f);  
   
-  // Large texture repeat for ground
-  float texRepeat = worldSize / 10.0f;
+  // Less compact than buildings (2x less grainy)
+  float texRepeat = worldSize / 5.0f;  // Was / 2.5, now doubled divisor
   
   glBegin(GL_QUADS);
   glNormal3f(0.0f, 1.0f, 0.0f);
   glTexCoord2f(0.0f, 0.0f);
-  glVertex3d(-worldSize, 0.0, -worldSize);
+  glVertex3d(-worldSize, -0.01, -worldSize);
   glTexCoord2f(texRepeat, 0.0f);
-  glVertex3d(worldSize, 0.0, -worldSize);
+  glVertex3d(worldSize, -0.01, -worldSize);
   glTexCoord2f(texRepeat, texRepeat);
-  glVertex3d(worldSize, 0.0, worldSize);
+  glVertex3d(worldSize, -0.01, worldSize);
   glTexCoord2f(0.0f, texRepeat);
-  glVertex3d(-worldSize, 0.0, worldSize);
+  glVertex3d(-worldSize, -0.01, worldSize);
   glEnd();
   
   glDisable(GL_TEXTURE_2D);
+  
+  // Re-enable lighting and fog
+  glEnable(GL_LIGHTING);
+  glEnable(GL_FOG);
 }
 
 void drawRoads() {
@@ -469,8 +585,8 @@ void drawRoads() {
     double roadStart = roadCenterX - roadWidth / 2.0;
     double roadEnd = roadCenterX + roadWidth / 2.0;
     
-    float texW = roadWidth * 0.1f;
-    float texL = worldSize * 0.05f;
+    float texW = roadWidth * 0.2f;  // Was 0.4, halved = less grainy
+    float texL = worldSize * 0.1f;  // Was 0.2, halved = less grainy
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 0.0f);
@@ -490,8 +606,8 @@ void drawRoads() {
     double roadStart = roadCenterZ - roadWidth / 2.0;
     double roadEnd = roadCenterZ + roadWidth / 2.0;
     
-    float texW = worldSize * 0.05f;
-    float texL = roadWidth * 0.1f;
+    float texW = worldSize * 0.1f;  // Was 0.2, halved = less grainy
+    float texL = roadWidth * 0.2f;  // Was 0.4, halved = less grainy
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 0.0f);
@@ -507,19 +623,35 @@ void drawRoads() {
   
   glDisable(GL_TEXTURE_2D);
   
-  // Draw road markings
-  glColor3f(0.30f, 0.30f, 0.32f);
-  glLineWidth(1.5f);
-  glBegin(GL_LINES);
+  // Draw road markings with texture
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, roadStripesTexture);
+  glColor4f(0.35f, 0.35f, 0.37f, 0.8f);  // Slightly transparent
+  
+  float stripeWidth = 0.2f;
+  float stripeLength = 4.0f;
+  float stripeGap = 4.0f;
+  
+  glBegin(GL_QUADS);
   
   // Vertical road markings
   for (int gx = -halfGrid; gx <= halfGrid + 1; gx++) {
     double roadCenterX = gx * totalBlockSize - roadWidth / 2.0;
     
-    for (double z = -worldSize; z < worldSize; z += 8.0) {
+    for (double z = -worldSize; z < worldSize; z += (stripeLength + stripeGap)) {
       float offset = sin(z * 0.05f) * 0.3f;
-      glVertex3d(roadCenterX + offset, 0.2, z);
-      glVertex3d(roadCenterX + offset, 0.2, z + 4.0);
+      
+      // Draw textured stripe quad
+      glTexCoord2f(0.0f, 0.0f);
+      glVertex3d(roadCenterX - stripeWidth + offset, 0.2, z);
+      glTexCoord2f(1.0f, 0.0f);
+      glVertex3d(roadCenterX + stripeWidth + offset, 0.2, z);
+      glTexCoord2f(1.0f, 1.0f);
+      glVertex3d(roadCenterX + stripeWidth + offset, 0.2, z + stripeLength);
+      glTexCoord2f(0.0f, 1.0f);
+      glVertex3d(roadCenterX - stripeWidth + offset, 0.2, z + stripeLength);
     }
   }
   
@@ -527,14 +659,25 @@ void drawRoads() {
   for (int gz = -halfGrid; gz <= halfGrid + 1; gz++) {
     double roadCenterZ = gz * totalBlockSize - roadWidth / 2.0;
     
-    for (double x = -worldSize; x < worldSize; x += 8.0) {
+    for (double x = -worldSize; x < worldSize; x += (stripeLength + stripeGap)) {
       float offset = sin(x * 0.05f) * 0.3f;
-      glVertex3d(x, 0.2, roadCenterZ + offset);
-      glVertex3d(x + 4.0, 0.2, roadCenterZ + offset);
+      
+      // Draw textured stripe quad
+      glTexCoord2f(0.0f, 0.0f);
+      glVertex3d(x, 0.2, roadCenterZ - stripeWidth + offset);
+      glTexCoord2f(1.0f, 0.0f);
+      glVertex3d(x + stripeLength, 0.2, roadCenterZ - stripeWidth + offset);
+      glTexCoord2f(1.0f, 1.0f);
+      glVertex3d(x + stripeLength, 0.2, roadCenterZ + stripeWidth + offset);
+      glTexCoord2f(0.0f, 1.0f);
+      glVertex3d(x, 0.2, roadCenterZ + stripeWidth + offset);
     }
   }
   
   glEnd();
+  
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
   glEnable(GL_FOG);
   glEnable(GL_LIGHTING);
 }
@@ -546,11 +689,10 @@ void drawCityBlockSidewalks() {
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, sidewalkTexture);
   
-  // Sidewalk color (lighter gray)
   glColor3f(0.28f, 0.28f, 0.30f);
   
   float sidewalkWidth = 2.0f;
-  float texScale = 0.5f;  // Texture repeat factor
+  float texScale = 1.0f;  // Was 2.0, halved = less grainy
   
   // Draw sidewalks around each city block
   for (const auto& block : cityBlocks) {
@@ -748,21 +890,39 @@ void drawRoundedCanopyCluster(float baseHeight, float topHeight, float maxRadius
       float x2_r2 = cos(angle2) * radius2 * variation2;
       float z2_r2 = sin(angle2) * radius2 * variation2;
       
+      // Texture coordinates based on angle and height
+      float u1 = (angle1 / (2.0f * M_PI));
+      float u2 = (angle2 / (2.0f * M_PI));
+      float v1 = t1;
+      float v2 = t2;
+      
       if (radius1 > 0.01f && radius2 > 0.01f) {
+        glTexCoord2f(u1, v1);
         glVertex3f(x1_r1, h1, z1_r1);
+        glTexCoord2f(u2, v1);
         glVertex3f(x2_r1, h1, z2_r1);
+        glTexCoord2f(u1, v2);
         glVertex3f(x1_r2, h2, z1_r2);
         
+        glTexCoord2f(u2, v1);
         glVertex3f(x2_r1, h1, z2_r1);
+        glTexCoord2f(u2, v2);
         glVertex3f(x2_r2, h2, z2_r2);
+        glTexCoord2f(u1, v2);
         glVertex3f(x1_r2, h2, z1_r2);
       } else if (radius1 > 0.01f) {
+        glTexCoord2f(u1, v1);
         glVertex3f(x1_r1, h1, z1_r1);
+        glTexCoord2f(u2, v1);
         glVertex3f(x2_r1, h1, z2_r1);
+        glTexCoord2f(0.5f, v2);
         glVertex3f(0.0f, h2, 0.0f);
       } else if (radius2 > 0.01f) {
+        glTexCoord2f(0.5f, v1);
         glVertex3f(0.0f, h1, 0.0f);
+        glTexCoord2f(u1, v2);
         glVertex3f(x1_r2, h2, z1_r2);
+        glTexCoord2f(u2, v2);
         glVertex3f(x2_r2, h2, z2_r2);
       }
     }
@@ -779,6 +939,12 @@ void drawLayeredTree(const Tree& tree) {
   glPushMatrix();
   glTranslated(tree.x, 0.0, tree.z);
   glScaled(tree.scale, tree.scale, tree.scale);
+  
+  // Enable leaves texture for foliage
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, leavesTexture);
   
   // Draw foliage clusters (bottom to top)
   float bottomBase = tree.height * 0.30f;
@@ -801,13 +967,18 @@ void drawLayeredTree(const Tree& tree) {
   glColor3f(tree.leavesR * 0.85f, tree.leavesG * 0.85f, tree.leavesB * 0.85f);
   drawRoundedCanopyCluster(capBase, capTop, 0.4f, 5);
   
-  // Draw trunk
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+  // Draw trunk with bark texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, barkTexture);
   glColor3f(tree.trunkR, tree.trunkG, tree.trunkB);
   glBegin(GL_QUADS);
   
   float trunkHeight = tree.height * 0.95f;
   float trunkBaseWidth = 0.5f;
   float trunkTopWidth = 0.12f;
+  float texHeight = trunkHeight * 0.2f;
   
   for (int i = 0; i < 8; i++) {
     float angle1 = (i / 8.0f) * 2.0f * M_PI;
@@ -823,19 +994,27 @@ void drawLayeredTree(const Tree& tree) {
     float x2_top = cos(angle2) * trunkTopWidth;
     float z2_top = sin(angle2) * trunkTopWidth;
     
+    float u1 = i / 8.0f;
+    float u2 = (i + 1) / 8.0f;
+    
+    glTexCoord2f(u1, 0.0f);
     glVertex3f(x1_base, 0.0f, z1_base);
+    glTexCoord2f(u2, 0.0f);
     glVertex3f(x2_base, 0.0f, z2_base);
+    glTexCoord2f(u2, texHeight);
     glVertex3f(x2_top, trunkHeight, z2_top);
+    glTexCoord2f(u1, texHeight);
     glVertex3f(x1_top, trunkHeight, z1_top);
   }
   
   glEnd();
+  glDisable(GL_TEXTURE_2D);
   
   // Draw branch stubs between foliage layers
   glColor3f(tree.trunkR * 1.2f, tree.trunkG * 1.2f, tree.trunkB * 1.2f);
   glBegin(GL_TRIANGLES);
   
-  float branchHeights[] = {tree.height * 0.50f, tree.height * 0.72f};
+  float branchHeights[] = {(float)(tree.height * 0.50f), (float)(tree.height * 0.72f)};
   
   for (int heightIdx = 0; heightIdx < 2; heightIdx++) {
     float branchHeight = branchHeights[heightIdx];
@@ -865,13 +1044,16 @@ void drawDeadTree(const Tree& tree) {
   glTranslated(tree.x, 0.0, tree.z);
   glScaled(tree.scale, tree.scale, tree.scale);
   
-  // Draw main trunk
+  // Draw main trunk with bark texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, barkTexture);
   glColor3f(tree.trunkR * 0.8f, tree.trunkG * 0.8f, tree.trunkB * 0.8f);
   glBegin(GL_QUADS);
   
   float trunkHeight = tree.height * 0.95f;
   float trunkBaseWidth = 0.4f;
   float trunkTopWidth = 0.1f;
+  float texHeight = trunkHeight * 0.2f;
   
   for (int i = 0; i < 6; i++) {
     float angle1 = (i / 6.0f) * 2.0f * M_PI;
@@ -887,13 +1069,21 @@ void drawDeadTree(const Tree& tree) {
     float x2_top = cos(angle2) * trunkTopWidth;
     float z2_top = sin(angle2) * trunkTopWidth;
     
+    float u1 = i / 6.0f;
+    float u2 = (i + 1) / 6.0f;
+    
+    glTexCoord2f(u1, 0.0f);
     glVertex3f(x1_base, 0.0f, z1_base);
+    glTexCoord2f(u2, 0.0f);
     glVertex3f(x2_base, 0.0f, z2_base);
+    glTexCoord2f(u2, texHeight);
     glVertex3f(x2_top, trunkHeight, z2_top);
+    glTexCoord2f(u1, texHeight);
     glVertex3f(x1_top, trunkHeight, z1_top);
   }
   
   glEnd();
+  glDisable(GL_TEXTURE_2D);
   
   // Draw skeletal branches
   glColor3f(tree.trunkR, tree.trunkG, tree.trunkB);
@@ -954,6 +1144,12 @@ void drawTwistedTree(const Tree& tree) {
   glTranslated(tree.x, 0.0, tree.z);
   glScaled(tree.scale, tree.scale, tree.scale);
   
+  // Enable leaves texture for foliage clusters
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, leavesTexture);
+  
   // Draw sparse foliage clusters along branches
   glColor3f(tree.leavesR, tree.leavesG, tree.leavesB);
   
@@ -979,7 +1175,12 @@ void drawTwistedTree(const Tree& tree) {
     glPopMatrix();
   }
   
-  // Draw twisted trunk that tapers to a sharp point
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+  
+  // Draw twisted trunk that tapers to a sharp point with bark texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, barkTexture);
   glColor3f(tree.trunkR, tree.trunkG, tree.trunkB);
   glBegin(GL_QUADS);
   
@@ -1017,14 +1218,24 @@ void drawTwistedTree(const Tree& tree) {
       float x2_t = cos(angle2) * w2 + offset2X;
       float z2_t = sin(angle2) * w2 + offset2Z;
       
+      float u1 = i / 6.0f;
+      float u2 = (i + 1) / 6.0f;
+      float v1 = t1;
+      float v2 = t2;
+      
+      glTexCoord2f(u1, v1);
       glVertex3f(x1_b, h1, z1_b);
+      glTexCoord2f(u2, v1);
       glVertex3f(x2_b, h1, z2_b);
+      glTexCoord2f(u2, v2);
       glVertex3f(x2_t, h2, z2_t);
+      glTexCoord2f(u1, v2);
       glVertex3f(x1_t, h2, z1_t);
     }
   }
   
   glEnd();
+  glDisable(GL_TEXTURE_2D);
   
   // Draw gnarled asymmetric branches
   glColor3f(tree.trunkR * 1.1f, tree.trunkG * 1.1f, tree.trunkB * 1.1f);
@@ -1089,39 +1300,72 @@ void drawBench(const Bench& bench) {
   glTranslated(bench.x, 0.0, bench.z);
   glRotated(bench.rotation, 0.0, 1.0, 0.0);
   
+  // Enable wood texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, benchTexture);
+  
   glColor3f(0.18f, 0.16f, 0.15f);
   
   glBegin(GL_QUADS);
   
-  // Seat
+  // Seat - Top
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.5f, -0.3f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.5f, -0.3f);
+  glTexCoord2f(2.0f, 1.0f);
   glVertex3f(1.0f, 0.5f, 0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 0.5f, 0.3f);
   
+  // Seat - Bottom
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.4f, -0.3f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.4f, -0.3f);
+  glTexCoord2f(2.0f, 1.0f);
   glVertex3f(1.0f, 0.4f, 0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 0.4f, 0.3f);
   
+  // Seat - Front
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.4f, 0.3f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.4f, 0.3f);
+  glTexCoord2f(2.0f, 1.0f);
   glVertex3f(1.0f, 0.5f, 0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 0.5f, 0.3f);
   
+  // Seat - Back
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.4f, -0.3f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.4f, -0.3f);
+  glTexCoord2f(2.0f, 1.0f);
   glVertex3f(1.0f, 0.5f, -0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 0.5f, -0.3f);
   
+  // Seat - Left
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.4f, -0.3f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-1.0f, 0.4f, 0.3f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(-1.0f, 0.5f, 0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 0.5f, -0.3f);
   
+  // Seat - Right
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(1.0f, 0.4f, -0.3f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(1.0f, 0.4f, 0.3f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(1.0f, 0.5f, 0.3f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(1.0f, 0.5f, -0.3f);
   
   glEnd();
@@ -1129,34 +1373,59 @@ void drawBench(const Bench& bench) {
   // Backrest
   glBegin(GL_QUADS);
   
+  // Front
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.5f, -0.35f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.5f, -0.35f);
+  glTexCoord2f(2.0f, 1.5f);
   glVertex3f(1.0f, 1.2f, -0.35f);
+  glTexCoord2f(0.0f, 1.5f);
   glVertex3f(-1.0f, 1.2f, -0.35f);
   
+  // Back
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.5f, -0.45f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 0.5f, -0.45f);
+  glTexCoord2f(2.0f, 1.5f);
   glVertex3f(1.0f, 1.2f, -0.45f);
+  glTexCoord2f(0.0f, 1.5f);
   glVertex3f(-1.0f, 1.2f, -0.45f);
   
+  // Top
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 1.2f, -0.45f);
+  glTexCoord2f(2.0f, 0.0f);
   glVertex3f(1.0f, 1.2f, -0.45f);
+  glTexCoord2f(2.0f, 1.0f);
   glVertex3f(1.0f, 1.2f, -0.35f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-1.0f, 1.2f, -0.35f);
   
+  // Left side
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-1.0f, 0.5f, -0.45f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-1.0f, 0.5f, -0.35f);
+  glTexCoord2f(1.0f, 1.5f);
   glVertex3f(-1.0f, 1.2f, -0.35f);
+  glTexCoord2f(0.0f, 1.5f);
   glVertex3f(-1.0f, 1.2f, -0.45f);
   
+  // Right side
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(1.0f, 0.5f, -0.45f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(1.0f, 0.5f, -0.35f);
+  glTexCoord2f(1.0f, 1.5f);
   glVertex3f(1.0f, 1.2f, -0.35f);
+  glTexCoord2f(0.0f, 1.5f);
   glVertex3f(1.0f, 1.2f, -0.45f);
   
   glEnd();
   
-  // Legs (4 corners)
+  // Legs (keeping simple - all get basic texture)
   glBegin(GL_QUADS);
   
   // Front left leg
@@ -1233,6 +1502,8 @@ void drawBench(const Bench& bench) {
   
   glEnd();
   
+  glDisable(GL_TEXTURE_2D);
+  
   glPopMatrix();
 }
 
@@ -1244,14 +1515,19 @@ void drawSmokestack(const Smokestack& stack) {
   glPushMatrix();
   glTranslated(stack.x, 0.0, stack.z);
   
+  // Enable metal texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, metalTexture);
+  
   // Dark industrial gray with rust
   glColor3f(0.18f, 0.16f, 0.14f);
   
   int segments = 8;
+  float texHeight = stack.height * 0.2f;
   
   glBegin(GL_QUADS);
   
-  // Draw cylindrical smokestack
+  // Draw cylindrical smokestack with texture
   for (int i = 0; i < segments; i++) {
     float angle1 = (i / (float)segments) * 2.0f * M_PI;
     float angle2 = ((i + 1) / (float)segments) * 2.0f * M_PI;
@@ -1261,13 +1537,22 @@ void drawSmokestack(const Smokestack& stack) {
     float x2 = cos(angle2) * stack.radius;
     float z2 = sin(angle2) * stack.radius;
     
+    float u1 = i / (float)segments;
+    float u2 = (i + 1) / (float)segments;
+    
+    glTexCoord2f(u1, 0.0f);
     glVertex3f(x1, 0.0f, z1);
+    glTexCoord2f(u2, 0.0f);
     glVertex3f(x2, 0.0f, z2);
+    glTexCoord2f(u2, texHeight);
     glVertex3f(x2, stack.height, z2);
+    glTexCoord2f(u1, texHeight);
     glVertex3f(x1, stack.height, z1);
   }
   
   glEnd();
+  
+  glDisable(GL_TEXTURE_2D);
   
   // Draw top cap (slightly larger for industrial look)
   glColor3f(0.15f, 0.13f, 0.12f);
@@ -1287,11 +1572,6 @@ void drawSmokestack(const Smokestack& stack) {
 void drawFence(const Fence& fence) {
   glDisable(GL_LIGHTING);
   
-  // Dark metal fence color
-  glColor3f(0.25f, 0.25f, 0.27f);
-  
-  glLineWidth(2.0f);
-  
   // Calculate fence direction
   double dx = fence.x2 - fence.x1;
   double dz = fence.z2 - fence.z1;
@@ -1306,50 +1586,89 @@ void drawFence(const Fence& fence) {
   dx /= length;
   dz /= length;
   
-  // Draw vertical posts every 3 units
-  int numPosts = (int)(length / 3.0) + 1;
+  // Draw chain-link panels between posts
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, fenceTexture);
+  glColor4f(0.35f, 0.35f, 0.37f, 0.9f);
   
-  glBegin(GL_LINES);
+  float texRepeat = length * 1.2f;  // Higher = more repetition
+  float texHeight = fence.height * 1.0f;
   
-  for (int i = 0; i <= numPosts; i++) {
-    double t = (i / (double)numPosts);
+  glBegin(GL_QUADS);
+  // Chain-link panel
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3d(fence.x1, 0.2, fence.z1);
+  glTexCoord2f(texRepeat, 0.0f);
+  glVertex3d(fence.x2, 0.2, fence.z2);
+  glTexCoord2f(texRepeat, texHeight);
+  glVertex3d(fence.x2, fence.height - 0.3, fence.z2);
+  glTexCoord2f(0.0f, texHeight);
+  glVertex3d(fence.x1, fence.height - 0.3, fence.z1);
+  glEnd();
+  
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+  
+  // Draw cylindrical metal posts with metal texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, metalTexture);
+  glColor3f(0.25f, 0.25f, 0.27f);
+  
+  int numPosts = (int)(length / 3.0) + 2;  // Posts every 3 units + end posts
+  float postRadius = 0.08f;
+  int segments = 6;
+  
+  for (int i = 0; i < numPosts; i++) {
+    double t = (i / (double)(numPosts - 1));
     double px = fence.x1 + dx * length * t;
     double pz = fence.z1 + dz * length * t;
     
-    // Vertical post
-    glVertex3d(px, 0.0, pz);
-    glVertex3d(px, fence.height, pz);
+    // Draw cylindrical post
+    glBegin(GL_QUADS);
+    for (int seg = 0; seg < segments; seg++) {
+      float angle1 = (seg / (float)segments) * 2.0f * M_PI;
+      float angle2 = ((seg + 1) / (float)segments) * 2.0f * M_PI;
+      
+      float x1 = cos(angle1) * postRadius;
+      float z1 = sin(angle1) * postRadius;
+      float x2 = cos(angle2) * postRadius;
+      float z2 = sin(angle2) * postRadius;
+      
+      float u1 = seg / (float)segments;
+      float u2 = (seg + 1) / (float)segments;
+      float texH = fence.height * 0.6f;  // Higher = more repetition
+      
+      glTexCoord2f(u1, 0.0f);
+      glVertex3d(px + x1, 0.0, pz + z1);
+      glTexCoord2f(u2, 0.0f);
+      glVertex3d(px + x2, 0.0, pz + z2);
+      glTexCoord2f(u2, texH);
+      glVertex3d(px + x2, fence.height - 0.4, pz + z2);
+      glTexCoord2f(u1, texH);
+      glVertex3d(px + x1, fence.height - 0.4, pz + z1);
+    }
+    glEnd();
+    
+    glDisable(GL_TEXTURE_2D);
+    
+    // Draw simple flat top cap
+    glColor3f(0.2f, 0.2f, 0.22f);
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex3d(px, fence.height - 0.4, pz);  // Center
+    for (int seg = 0; seg <= segments; seg++) {
+      float angle = (seg / (float)segments) * 2.0f * M_PI;
+      float x = cos(angle) * postRadius;
+      float z = sin(angle) * postRadius;
+      glVertex3d(px + x, fence.height - 0.4, pz + z);
+    }
+    glEnd();
+    
+    glEnable(GL_TEXTURE_2D);
   }
   
-  // Draw horizontal rails (top, middle, bottom)
-  for (int rail = 0; rail < 3; rail++) {
-    double railHeight = fence.height * (0.2 + rail * 0.3);
-    
-    glVertex3d(fence.x1, railHeight, fence.z1);
-    glVertex3d(fence.x2, railHeight, fence.z2);
-  }
-  
-  // Draw diagonal cross-bracing for industrial look
-  int numCrosses = (int)(length / 6.0) + 1;
-  for (int i = 0; i < numCrosses; i++) {
-    double t1 = (i / (double)numCrosses);
-    double t2 = ((i + 1) / (double)numCrosses);
-    
-    double x1 = fence.x1 + dx * length * t1;
-    double z1 = fence.z1 + dz * length * t1;
-    double x2 = fence.x1 + dx * length * t2;
-    double z2 = fence.z1 + dz * length * t2;
-    
-    // X pattern
-    glVertex3d(x1, fence.height * 0.2, z1);
-    glVertex3d(x2, fence.height * 0.8, z2);
-    
-    glVertex3d(x1, fence.height * 0.8, z1);
-    glVertex3d(x2, fence.height * 0.2, z2);
-  }
-  
-  glEnd();
-  
+  glDisable(GL_TEXTURE_2D);
   glEnable(GL_LIGHTING);
 }
 
@@ -1362,73 +1681,134 @@ void drawGravestone(const Gravestone& stone) {
   glTranslated(stone.x, 0.0, stone.z);
   glRotated(stone.rotation, 0.0, 1.0, 0.0);
   
+  // Enable gravestone texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, gravestoneTexture);
+  
   // Weathered stone gray
   glColor3f(0.25f, 0.25f, 0.27f);
+  
+  float texScaleW = stone.width * 2.0f;
+  float texScaleH = stone.height * 0.5f;
+  float texScaleD = stone.depth * 2.0f;
   
   switch(stone.stoneType) {
     case 0: {  // Cross shape
       glBegin(GL_QUADS);
       
-      // Vertical part
+      // Vertical part - Front face (already has UVs)
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, 0.0f);
       glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, texScaleH);
       glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
       
+      // Back face
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, 0.0f);
       glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, texScaleH);
       glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
       
+      // Left face
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH);
       glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
       
+      // Right face
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH);
       glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
       
+      // Top face
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, 0.0f);
       glVertex3f(stone.width * 0.2f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, texScaleD);
       glVertex3f(stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleD);
       glVertex3f(-stone.width * 0.2f, stone.height, -stone.depth * 0.5f);
       
+      // Bottom face
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, 0.0f);
       glVertex3f(stone.width * 0.2f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW * 0.4f, texScaleD);
       glVertex3f(stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleD);
       glVertex3f(-stone.width * 0.2f, 0.0f, stone.depth * 0.5f);
       
-      // Horizontal cross bar
+      // Horizontal cross bar - all faces with UVs
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, texScaleH * 0.1f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleH * 0.1f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, texScaleH * 0.1f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleH * 0.1f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, texScaleD * 0.6f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleD * 0.6f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleW, texScaleD * 0.6f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleD * 0.6f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleD * 0.6f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleD * 0.6f, texScaleH * 0.1f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleH * 0.1f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, stone.depth * 0.3f);
+      glTexCoord2f(texScaleD * 0.6f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.7f, -stone.depth * 0.3f);
+      glTexCoord2f(texScaleD * 0.6f, texScaleH * 0.1f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.3f);
+      glTexCoord2f(0.0f, texScaleH * 0.1f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.3f);
       glEnd();
       break;
@@ -1437,50 +1817,86 @@ void drawGravestone(const Gravestone& stone) {
     case 1: {  // Rounded top (classic tombstone)
       glBegin(GL_QUADS);
       
-      // Main body
+      // Main body - Front
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleH * 0.8f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH * 0.8f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
       
+      // Back
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleH * 0.8f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH * 0.8f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
       
+      // Left
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH * 0.8f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH * 0.8f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
       
+      // Right
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH * 0.8f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH * 0.8f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
       
+      // Bottom
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleD);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleD);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
       glEnd();
       
-      // Rounded top as pyramid
+      // Rounded top as pyramid with UVs
       glBegin(GL_TRIANGLES);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, stone.depth * 0.5f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height * 0.8f, -stone.depth * 0.5f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       glEnd();
       break;
@@ -1489,34 +1905,64 @@ void drawGravestone(const Gravestone& stone) {
     case 2: {  // Flat top
       glBegin(GL_QUADS);
       
+      // Front
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleH);
       glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
       
+      // Back
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleH);
       glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
       
+      // Left
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH);
       glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
       
+      // Right
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleD, texScaleH);
       glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleH);
       glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
       
+      // Top
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, stone.height, stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleD);
       glVertex3f(stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleD);
       glVertex3f(-stone.width * 0.5f, stone.height, -stone.depth * 0.5f);
       
+      // Bottom
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, 0.0f);
       glVertex3f(stone.width * 0.5f, 0.0f, -stone.depth * 0.5f);
+      glTexCoord2f(texScaleW, texScaleD);
       glVertex3f(stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
+      glTexCoord2f(0.0f, texScaleD);
       glVertex3f(-stone.width * 0.5f, 0.0f, stone.depth * 0.5f);
       glEnd();
       break;
@@ -1525,55 +1971,97 @@ void drawGravestone(const Gravestone& stone) {
     case 3: {  // Obelisk (tall and tapered)
       glBegin(GL_QUADS);
       
-      // Tapered body
+      // Tapered body - Front
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
       
+      // Back
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
       
+      // Left
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
       
+      // Right
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
       
+      // Bottom
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, -stone.depth * 0.6f);
+      glTexCoord2f(1.0f, 1.0f);
       glVertex3f(stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
+      glTexCoord2f(0.0f, 1.0f);
       glVertex3f(-stone.width * 0.6f, 0.0f, stone.depth * 0.6f);
       glEnd();
       
       // Pointed top
       glBegin(GL_TRIANGLES);
       
+      // Front triangle
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      // Back triangle
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      // Left triangle
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(-stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       
+      // Right triangle
+      glTexCoord2f(0.0f, 0.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, stone.depth * 0.4f);
+      glTexCoord2f(1.0f, 0.0f);
       glVertex3f(stone.width * 0.4f, stone.height * 0.7f, -stone.depth * 0.4f);
+      glTexCoord2f(0.5f, 1.0f);
       glVertex3f(0.0f, stone.height, 0.0f);
       glEnd();
       break;
     }
   }
+  
+  glDisable(GL_TEXTURE_2D);
   
   glPopMatrix();
 }
@@ -1583,62 +2071,105 @@ void drawMausoleum(const Mausoleum& mausoleum) {
   glTranslated(mausoleum.x, 0.0, mausoleum.z);
   glRotated(mausoleum.rotation, 0.0, 1.0, 0.0);
   
+  // Enable texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, gravestoneTexture);
+  
   // Dark weathered stone
   glColor3f(0.20f, 0.20f, 0.22f);
   
   glBegin(GL_QUADS);
   
-  // Main structure walls
+  // Front wall
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
   
+  // Back wall
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
   
+  // Left wall
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
   
+  // Right wall
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, 0.0f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, 0.0f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
   
   glEnd();
   
-  // Peaked roof
+  // Peaked roof with texture
   glColor3f(0.15f, 0.15f, 0.17f);
   glBegin(GL_TRIANGLES);
   
+  // Front triangle
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(0.5f, 1.0f);
   glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
   
+  // Back triangle
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(0.5f, 1.0f);
   glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
   
   glEnd();
   
-  // Roof sides
+  // Roof sides with texture
   glBegin(GL_QUADS);
   
+  // Left slope
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(-mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
   
+  // Right slope
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 0.0f);
   glVertex3f(mausoleum.width * 0.5f, mausoleum.height * 0.7f, -mausoleum.depth * 0.5f);
+  glTexCoord2f(1.0f, 1.0f);
   glVertex3f(0.0f, mausoleum.height, -mausoleum.depth * 0.5f);
+  glTexCoord2f(0.0f, 1.0f);
   glVertex3f(0.0f, mausoleum.height, mausoleum.depth * 0.5f);
   
   glEnd();
+  
+  glDisable(GL_TEXTURE_2D);
   
   // Dark entrance doorway
   glDisable(GL_LIGHTING);
