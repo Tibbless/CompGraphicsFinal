@@ -30,6 +30,7 @@ void display() {
   // Draw world geometry
   drawGroundPlane();
   drawRoads();
+  drawCityBlockSidewalks();
   
   // Draw all buildings
   for (const auto& building : buildings) {

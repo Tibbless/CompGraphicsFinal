@@ -9,41 +9,69 @@ void drawBuilding(const Building& building) {
   glTranslated(building.x, 0.0, building.z);
   glRotated(building.rotation, 0.0, 1.0, 0.0);
   
+  // Enable texturing and bind brick/concrete texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, building.buildingType == 1 ? concreteTexture : brickTexture);
+  
   // Building body with PS1-style vertex jitter
   float jitter = 0.02f;
   glColor3f(building.r, building.g, building.b);
+  
+  // Calculate texture coordinates based on building size
+  float texScaleW = building.width * 0.3f;
+  float texScaleD = building.depth * 0.3f;
+  float texScaleH = building.height * 0.15f;
   
   glBegin(GL_QUADS);
   
   // Front face
   glNormal3f(0.0f, 0.0f, 1.0f);
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-building.width + ((rand() % 100) / 5000.0f - jitter), 0.0f, building.depth);
+  glTexCoord2f(texScaleW, 0.0f);
   glVertex3f(building.width + ((rand() % 100) / 5000.0f - jitter), 0.0f, building.depth);
+  glTexCoord2f(texScaleW, texScaleH);
   glVertex3f(building.width + ((rand() % 100) / 5000.0f - jitter), building.height, building.depth);
+  glTexCoord2f(0.0f, texScaleH);
   glVertex3f(-building.width + ((rand() % 100) / 5000.0f - jitter), building.height, building.depth);
   
   // Back face
   glNormal3f(0.0f, 0.0f, -1.0f);
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(building.width, 0.0f, -building.depth);
+  glTexCoord2f(texScaleW, 0.0f);
   glVertex3f(-building.width, 0.0f, -building.depth);
+  glTexCoord2f(texScaleW, texScaleH);
   glVertex3f(-building.width, building.height, -building.depth);
+  glTexCoord2f(0.0f, texScaleH);
   glVertex3f(building.width, building.height, -building.depth);
   
   // Right face
   glNormal3f(1.0f, 0.0f, 0.0f);
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(building.width, 0.0f, building.depth);
+  glTexCoord2f(texScaleD, 0.0f);
   glVertex3f(building.width, 0.0f, -building.depth);
+  glTexCoord2f(texScaleD, texScaleH);
   glVertex3f(building.width, building.height, -building.depth);
+  glTexCoord2f(0.0f, texScaleH);
   glVertex3f(building.width, building.height, building.depth);
   
   // Left face
   glNormal3f(-1.0f, 0.0f, 0.0f);
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-building.width, 0.0f, -building.depth);
+  glTexCoord2f(texScaleD, 0.0f);
   glVertex3f(-building.width, 0.0f, building.depth);
+  glTexCoord2f(texScaleD, texScaleH);
   glVertex3f(-building.width, building.height, building.depth);
+  glTexCoord2f(0.0f, texScaleH);
   glVertex3f(-building.width, building.height, -building.depth);
   
-  // Top (flat roof)
+  // Top (flat roof) - disable texture for flat color
+  glEnd();
+  glDisable(GL_TEXTURE_2D);
+  glBegin(GL_QUADS);
   glNormal3f(0.0f, 1.0f, 0.0f);
   glVertex3f(-building.width, building.height, building.depth);
   glVertex3f(building.width, building.height, building.depth);
@@ -398,15 +426,26 @@ void drawAmbientObject(const AmbientObject& obj) {
 // ============================================================================
 
 void drawGroundPlane() {
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, groundTexture);
   glColor3f(0.12f, 0.12f, 0.14f);
+  
+  // Large texture repeat for ground
+  float texRepeat = worldSize / 10.0f;
   
   glBegin(GL_QUADS);
   glNormal3f(0.0f, 1.0f, 0.0f);
+  glTexCoord2f(0.0f, 0.0f);
   glVertex3d(-worldSize, 0.0, -worldSize);
+  glTexCoord2f(texRepeat, 0.0f);
   glVertex3d(worldSize, 0.0, -worldSize);
+  glTexCoord2f(texRepeat, texRepeat);
   glVertex3d(worldSize, 0.0, worldSize);
+  glTexCoord2f(0.0f, texRepeat);
   glVertex3d(-worldSize, 0.0, worldSize);
   glEnd();
+  
+  glDisable(GL_TEXTURE_2D);
 }
 
 void drawRoads() {
@@ -417,6 +456,11 @@ void drawRoads() {
   int halfGrid = cityGridSize / 2;
   int totalBlockSize = blockSize + roadWidth;
   
+  // Enable road texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, roadTexture);
+  
+  // Road surface color
   glColor3f(0.20f, 0.20f, 0.22f);
   
   // Draw vertical roads
@@ -425,10 +469,17 @@ void drawRoads() {
     double roadStart = roadCenterX - roadWidth / 2.0;
     double roadEnd = roadCenterX + roadWidth / 2.0;
     
+    float texW = roadWidth * 0.1f;
+    float texL = worldSize * 0.05f;
+    
     glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3d(roadStart, 0.15, -worldSize);
+    glTexCoord2f(texW, 0.0f);
     glVertex3d(roadEnd, 0.15, -worldSize);
+    glTexCoord2f(texW, texL);
     glVertex3d(roadEnd, 0.15, worldSize);
+    glTexCoord2f(0.0f, texL);
     glVertex3d(roadStart, 0.15, worldSize);
     glEnd();
   }
@@ -439,13 +490,22 @@ void drawRoads() {
     double roadStart = roadCenterZ - roadWidth / 2.0;
     double roadEnd = roadCenterZ + roadWidth / 2.0;
     
+    float texW = worldSize * 0.05f;
+    float texL = roadWidth * 0.1f;
+    
     glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3d(-worldSize, 0.16, roadStart);
+    glTexCoord2f(texW, 0.0f);
     glVertex3d(worldSize, 0.16, roadStart);
+    glTexCoord2f(texW, texL);
     glVertex3d(worldSize, 0.16, roadEnd);
+    glTexCoord2f(0.0f, texL);
     glVertex3d(-worldSize, 0.16, roadEnd);
     glEnd();
   }
+  
+  glDisable(GL_TEXTURE_2D);
   
   // Draw road markings
   glColor3f(0.30f, 0.30f, 0.32f);
@@ -476,6 +536,83 @@ void drawRoads() {
   
   glEnd();
   glEnable(GL_FOG);
+  glEnable(GL_LIGHTING);
+}
+
+void drawCityBlockSidewalks() {
+  glDisable(GL_LIGHTING);
+  
+  // Enable sidewalk texture
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, sidewalkTexture);
+  
+  // Sidewalk color (lighter gray)
+  glColor3f(0.28f, 0.28f, 0.30f);
+  
+  float sidewalkWidth = 2.0f;
+  float texScale = 0.5f;  // Texture repeat factor
+  
+  // Draw sidewalks around each city block
+  for (const auto& block : cityBlocks) {
+    // Skip empty blocks
+    if (block.type == BLOCK_EMPTY) continue;
+    
+    double blockLeft = block.worldX;
+    double blockRight = block.worldX + blockSize;
+    double blockTop = block.worldZ;
+    double blockBottom = block.worldZ + blockSize;
+    
+    float blockTexW = blockSize * texScale;
+    float swTexW = sidewalkWidth * texScale;
+    
+    glBegin(GL_QUADS);
+    
+    // North sidewalk (full width - will fill corners)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3d(blockLeft, 0.17, blockTop);
+    glTexCoord2f(blockTexW, 0.0f);
+    glVertex3d(blockRight, 0.17, blockTop);
+    glTexCoord2f(blockTexW, swTexW);
+    glVertex3d(blockRight, 0.17, blockTop + sidewalkWidth);
+    glTexCoord2f(0.0f, swTexW);
+    glVertex3d(blockLeft, 0.17, blockTop + sidewalkWidth);
+    
+    // South sidewalk (full width - will fill corners)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3d(blockLeft, 0.17, blockBottom - sidewalkWidth);
+    glTexCoord2f(blockTexW, 0.0f);
+    glVertex3d(blockRight, 0.17, blockBottom - sidewalkWidth);
+    glTexCoord2f(blockTexW, swTexW);
+    glVertex3d(blockRight, 0.17, blockBottom);
+    glTexCoord2f(0.0f, swTexW);
+    glVertex3d(blockLeft, 0.17, blockBottom);
+    
+    // West sidewalk (exclude corners to avoid overlap with north/south)
+    float westHeight = (blockBottom - sidewalkWidth) - (blockTop + sidewalkWidth);
+    float westTexH = westHeight * texScale;
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3d(blockLeft, 0.17, blockTop + sidewalkWidth);
+    glTexCoord2f(swTexW, 0.0f);
+    glVertex3d(blockLeft + sidewalkWidth, 0.17, blockTop + sidewalkWidth);
+    glTexCoord2f(swTexW, westTexH);
+    glVertex3d(blockLeft + sidewalkWidth, 0.17, blockBottom - sidewalkWidth);
+    glTexCoord2f(0.0f, westTexH);
+    glVertex3d(blockLeft, 0.17, blockBottom - sidewalkWidth);
+    
+    // East sidewalk (exclude corners to avoid overlap with north/south)
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3d(blockRight - sidewalkWidth, 0.17, blockTop + sidewalkWidth);
+    glTexCoord2f(swTexW, 0.0f);
+    glVertex3d(blockRight, 0.17, blockTop + sidewalkWidth);
+    glTexCoord2f(swTexW, westTexH);
+    glVertex3d(blockRight, 0.17, blockBottom - sidewalkWidth);
+    glTexCoord2f(0.0f, westTexH);
+    glVertex3d(blockRight - sidewalkWidth, 0.17, blockBottom - sidewalkWidth);
+    
+    glEnd();
+  }
+  
+  glDisable(GL_TEXTURE_2D);
   glEnable(GL_LIGHTING);
 }
 

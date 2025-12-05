@@ -52,6 +52,29 @@ std::vector<Fence> fences;
 std::vector<Gravestone> gravestones;
 std::vector<Mausoleum> mausoleums;
 
+// Texture IDs - Building and Ground
+GLuint brickTexture = 0;
+GLuint concreteTexture = 0;
+GLuint roadTexture = 0;
+GLuint sidewalkTexture = 0;
+GLuint groundTexture = 0;
+
+// Texture IDs - Nature
+GLuint leavesTexture = 0;
+GLuint barkTexture = 0;
+
+// Texture IDs - Metal and Lights
+GLuint metalTexture = 0;
+GLuint lightTexture = 0;
+GLuint lampGlowTexture = 0;
+
+// Texture IDs - Road Markings
+GLuint roadStripesTexture = 0;
+
+// Texture IDs - Structures
+GLuint fenceTexture = 0;
+GLuint gravestoneTexture = 0;
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -233,6 +256,140 @@ void setupStreetLampLights() {
 }
 
 // ============================================================================
+// TEXTURE SYSTEM - PNG LOADING
+// ============================================================================
+
+// stb_image - single-header PNG/JPG/etc loader
+// Include this before the implementation
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+// Load PNG texture file
+GLuint loadTexturePNG(const char* filename) {
+  int width, height, channels;
+  
+  // Load image data using stb_image (supports PNG, JPG, TGA, BMP, etc.)
+  unsigned char* data = stbi_load(filename, &width, &height, &channels, 0);
+  
+  if (!data) {
+    std::cerr << "ERROR: Could not load texture: " << filename << std::endl;
+    std::cerr << "  Reason: " << stbi_failure_reason() << std::endl;
+    return 0;
+  }
+  
+  // Determine format based on channels
+  GLenum format;
+  if (channels == 1) {
+    format = GL_LUMINANCE;
+  } else if (channels == 3) {
+    format = GL_RGB;
+  } else if (channels == 4) {
+    format = GL_RGBA;
+  } else {
+    std::cerr << "ERROR: Unsupported channel count: " << channels << " in " << filename << std::endl;
+    stbi_image_free(data);
+    return 0;
+  }
+  
+  // Generate OpenGL texture
+  GLuint texID;
+  glGenTextures(1, &texID);
+  glBindTexture(GL_TEXTURE_2D, texID);
+  
+  // Upload texture with PS1-style nearest neighbor filtering
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+  
+  // PS1-style filtering: nearest neighbor (no smoothing) for pixelated look
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  
+  // Free image data
+  stbi_image_free(data);
+  
+  std::cout << "Loaded texture: " << filename << " (" << width << "x" << height << ", " << channels << " channels)" << std::endl;
+  return texID;
+}
+
+void initializeTextures() {
+  std::cout << "\n=== Loading Textures ===" << std::endl;
+  
+  glEnable(GL_TEXTURE_2D);
+  
+  // Load textures from textures/ folder
+  // All textures should be PNG format
+  
+  std::cout << "\nBuilding and Ground Textures:" << std::endl;
+  brickTexture = loadTexturePNG("textures/brick.png");
+  concreteTexture = loadTexturePNG("textures/concrete.png");
+  roadTexture = loadTexturePNG("textures/road.png");
+  sidewalkTexture = loadTexturePNG("textures/sidewalk.png");
+  groundTexture = loadTexturePNG("textures/ground.png");
+  
+  std::cout << "\nNature Textures:" << std::endl;
+  leavesTexture = loadTexturePNG("textures/leaves.png");
+  barkTexture = loadTexturePNG("textures/bark.png");
+  
+  std::cout << "\nMetal and Light Textures:" << std::endl;
+  metalTexture = loadTexturePNG("textures/metal.png");
+  lightTexture = loadTexturePNG("textures/light.png");
+  lampGlowTexture = loadTexturePNG("textures/lamp_glow.png");
+  
+  std::cout << "\nRoad Marking Textures:" << std::endl;
+  roadStripesTexture = loadTexturePNG("textures/road_stripes.png");
+  
+  std::cout << "\nStructure Textures:" << std::endl;
+  fenceTexture = loadTexturePNG("textures/fence.png");
+  gravestoneTexture = loadTexturePNG("textures/gravestone.png");
+  
+  // Check if any critical textures failed to load
+  int failCount = 0;
+  if (!brickTexture) failCount++;
+  if (!concreteTexture) failCount++;
+  if (!roadTexture) failCount++;
+  if (!sidewalkTexture) failCount++;
+  if (!groundTexture) failCount++;
+  if (!leavesTexture) failCount++;
+  if (!barkTexture) failCount++;
+  if (!metalTexture) failCount++;
+  if (!lightTexture) failCount++;
+  if (!lampGlowTexture) failCount++;
+  if (!roadStripesTexture) failCount++;
+  if (!fenceTexture) failCount++;
+  if (!gravestoneTexture) failCount++;
+  
+  if (failCount > 0) {
+    std::cerr << "\n========================================" << std::endl;
+    std::cerr << "WARNING: " << failCount << " texture(s) failed to load!" << std::endl;
+    std::cerr << "========================================" << std::endl;
+    std::cerr << "\nRequired texture files (PNG format):" << std::endl;
+    std::cerr << "\nBuilding and Ground:" << std::endl;
+    std::cerr << "  textures/brick.png       - Building walls (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/concrete.png    - Industrial buildings (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/road.png        - Road surface (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/sidewalk.png    - Sidewalk surface (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/ground.png      - Ground plane (64x64 or 128x128)" << std::endl;
+    std::cerr << "\nNature:" << std::endl;
+    std::cerr << "  textures/leaves.png      - Tree foliage (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/bark.png        - Tree trunks (32x32 or 64x64)" << std::endl;
+    std::cerr << "\nMetal and Lights:" << std::endl;
+    std::cerr << "  textures/metal.png       - Street lamp poles (16x16 or 32x32)" << std::endl;
+    std::cerr << "  textures/light.png       - Lamp housing (16x16 or 32x32)" << std::endl;
+    std::cerr << "  textures/lamp_glow.png   - Light glow effect (16x16 or 32x32)" << std::endl;
+    std::cerr << "\nRoad Markings:" << std::endl;
+    std::cerr << "  textures/road_stripes.png - Road center lines (8x8 or 16x16)" << std::endl;
+    std::cerr << "\nStructures:" << std::endl;
+    std::cerr << "  textures/fence.png       - Chain-link fence (32x32 or 64x64)" << std::endl;
+    std::cerr << "  textures/gravestone.png  - Gravestone surface (32x32 or 64x64)" << std::endl;
+    std::cerr << "\nNote: All textures should be PNG format with alpha channel support" << std::endl;
+    std::cerr << "      Recommended sizes shown for PS1 aesthetic (low-res, pixelated)" << std::endl;
+  }
+  
+  std::cout << "\n=== Texture Loading Complete ===" << std::endl;
+}
+
+// ============================================================================
 // MAIN ENTRY POINT
 // ============================================================================
 
@@ -256,6 +413,7 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   
   // Generate world
+  initializeTextures();
   initializeCityGrid();
   generateRoadLights();
   initializeAmbientObjects();

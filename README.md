@@ -131,4 +131,5 @@ make help
 - Smooth over the movment system.
 - Maybe do some shadders if I have time.
 - Make the dithering better.
+- Fix some of the effects not working properly
 - If you have any other suggestions please let me know

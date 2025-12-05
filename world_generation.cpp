@@ -11,6 +11,60 @@ void gridToWorld(int gridX, int gridZ, double& worldX, double& worldZ) {
   worldZ = gridZ * totalBlockSize;
 }
 
+// Helper function to add sidewalk lamps around a block perimeter
+void addSidewalkLamps(CityBlock& block) {
+  float sidewalkWidth = 2.0f;
+  int lampSpacing = 12;
+  
+  // North edge
+  for (int offset = 6; offset < blockSize - 6; offset += lampSpacing) {
+    StreetLamp lamp;
+    lamp.x = block.worldX + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    lamp.z = block.worldZ + sidewalkWidth * 0.8;
+    lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    lamp.isWorking = (rand() % 100) < 65;
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
+  }
+  
+  // South edge
+  for (int offset = 6; offset < blockSize - 6; offset += lampSpacing) {
+    StreetLamp lamp;
+    lamp.x = block.worldX + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    lamp.z = block.worldZ + blockSize - sidewalkWidth * 0.8;
+    lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    lamp.isWorking = (rand() % 100) < 65;
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
+  }
+  
+  // West edge
+  for (int offset = 6; offset < blockSize - 6; offset += lampSpacing) {
+    StreetLamp lamp;
+    lamp.x = block.worldX + sidewalkWidth * 0.8;
+    lamp.z = block.worldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    lamp.isWorking = (rand() % 100) < 65;
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
+  }
+  
+  // East edge
+  for (int offset = 6; offset < blockSize - 6; offset += lampSpacing) {
+    StreetLamp lamp;
+    lamp.x = block.worldX + blockSize - sidewalkWidth * 0.8;
+    lamp.z = block.worldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    lamp.isWorking = (rand() % 100) < 65;
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
+  }
+}
+
 // ============================================================================
 // BUILDING BLOCK GENERATION
 // ============================================================================
@@ -63,7 +117,7 @@ void generateBuildingBlock(CityBlock& block) {
       b.b = baseVal + (rand() / float(RAND_MAX)) * 0.08f;
       
       b.buildingType = rand() % 3;
-      b.hasWindows = true; 
+      b.hasWindows = (rand() % 100) < 95;  // Almost all buildings have windows
       b.windowPattern = rand() % 4;
       
       // Check block boundaries
@@ -109,6 +163,217 @@ void generateBuildingBlock(CityBlock& block) {
   for (const auto& building : candidates) {
     block.buildingIndices.push_back(buildings.size());
     buildings.push_back(building);
+  }
+  
+  // Generate street lamps on sidewalks and trees inside the block
+  float sidewalkWidth = 2.0f;
+  float innerMargin = 4.0f;  // Distance from sidewalk into the block for trees
+  int itemSpacing = 12;
+  float minTreeDistance = 4.0f;  // Minimum distance from trees to buildings
+  
+  // North edge (top)
+  for (int offset = 6; offset < blockSize - 6; offset += itemSpacing) {
+    double posX = block.worldX + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    
+    // 50% chance: lamp on sidewalk OR tree inside block
+    if (rand() % 2 == 0) {
+      // Street lamp on sidewalk
+      StreetLamp lamp;
+      lamp.x = posX;
+      lamp.z = block.worldZ + sidewalkWidth * 0.8;  // On sidewalk
+      lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+      lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+      lamp.isWorking = (rand() % 100) < 65;
+      block.lampIndices.push_back(streetLamps.size());
+      streetLamps.push_back(lamp);
+    } else {
+      // Tree inside block - check for collision with buildings
+      double treeX = posX;
+      double treeZ = block.worldZ + sidewalkWidth + innerMargin;
+      
+      bool tooCloseToBuilding = false;
+      for (const auto& building : candidates) {
+        double dx = treeX - building.x;
+        double dz = treeZ - building.z;
+        double distance = sqrt(dx*dx + dz*dz);
+        double maxDim = fmax(building.width, building.depth);
+        
+        if (distance < maxDim + minTreeDistance) {
+          tooCloseToBuilding = true;
+          break;
+        }
+      }
+      
+      if (!tooCloseToBuilding) {
+        Tree tree;
+        tree.x = treeX;
+        tree.z = treeZ;
+        tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+        tree.scale = 1.0f + (rand() / float(RAND_MAX)) * 0.5f;
+        tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+        tree.leavesR = 0.08f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
+        tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
+        int treeTypeRoll = rand() % 3;
+        tree.type = (treeTypeRoll == 0) ? TREE_LAYERED : (treeTypeRoll == 1) ? TREE_DEAD : TREE_TWISTED;
+        trees.push_back(tree);
+      }
+    }
+  }
+  
+  // South edge (bottom)
+  for (int offset = 6; offset < blockSize - 6; offset += itemSpacing) {
+    double posX = block.worldX + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    
+    if (rand() % 2 == 0) {
+      // Street lamp on sidewalk
+      StreetLamp lamp;
+      lamp.x = posX;
+      lamp.z = block.worldZ + blockSize - sidewalkWidth * 0.8;  // On sidewalk
+      lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+      lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+      lamp.isWorking = (rand() % 100) < 65;
+      block.lampIndices.push_back(streetLamps.size());
+      streetLamps.push_back(lamp);
+    } else {
+      // Tree inside block - check for collision with buildings
+      double treeX = posX;
+      double treeZ = block.worldZ + blockSize - sidewalkWidth - innerMargin;
+      
+      bool tooCloseToBuilding = false;
+      for (const auto& building : candidates) {
+        double dx = treeX - building.x;
+        double dz = treeZ - building.z;
+        double distance = sqrt(dx*dx + dz*dz);
+        double maxDim = fmax(building.width, building.depth);
+        
+        if (distance < maxDim + minTreeDistance) {
+          tooCloseToBuilding = true;
+          break;
+        }
+      }
+      
+      if (!tooCloseToBuilding) {
+        Tree tree;
+        tree.x = treeX;
+        tree.z = treeZ;
+        tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+        tree.scale = 1.0f + (rand() / float(RAND_MAX)) * 0.5f;
+        tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+        tree.leavesR = 0.08f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
+        tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
+        int treeTypeRoll = rand() % 3;
+        tree.type = (treeTypeRoll == 0) ? TREE_LAYERED : (treeTypeRoll == 1) ? TREE_DEAD : TREE_TWISTED;
+        trees.push_back(tree);
+      }
+    }
+  }
+  
+  // West edge (left)
+  for (int offset = 6; offset < blockSize - 6; offset += itemSpacing) {
+    double posZ = block.worldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    
+    if (rand() % 2 == 0) {
+      // Street lamp on sidewalk
+      StreetLamp lamp;
+      lamp.x = block.worldX + sidewalkWidth * 0.8;  // On sidewalk
+      lamp.z = posZ;
+      lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+      lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+      lamp.isWorking = (rand() % 100) < 65;
+      block.lampIndices.push_back(streetLamps.size());
+      streetLamps.push_back(lamp);
+    } else {
+      // Tree inside block - check for collision with buildings
+      double treeX = block.worldX + sidewalkWidth + innerMargin;
+      double treeZ = posZ;
+      
+      bool tooCloseToBuilding = false;
+      for (const auto& building : candidates) {
+        double dx = treeX - building.x;
+        double dz = treeZ - building.z;
+        double distance = sqrt(dx*dx + dz*dz);
+        double maxDim = fmax(building.width, building.depth);
+        
+        if (distance < maxDim + minTreeDistance) {
+          tooCloseToBuilding = true;
+          break;
+        }
+      }
+      
+      if (!tooCloseToBuilding) {
+        Tree tree;
+        tree.x = treeX;
+        tree.z = treeZ;
+        tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+        tree.scale = 1.0f + (rand() / float(RAND_MAX)) * 0.5f;
+        tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+        tree.leavesR = 0.08f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
+        tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
+        int treeTypeRoll = rand() % 3;
+        tree.type = (treeTypeRoll == 0) ? TREE_LAYERED : (treeTypeRoll == 1) ? TREE_DEAD : TREE_TWISTED;
+        trees.push_back(tree);
+      }
+    }
+  }
+  
+  // East edge (right)
+  for (int offset = 6; offset < blockSize - 6; offset += itemSpacing) {
+    double posZ = block.worldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
+    
+    if (rand() % 2 == 0) {
+      // Street lamp on sidewalk
+      StreetLamp lamp;
+      lamp.x = block.worldX + blockSize - sidewalkWidth * 0.8;  // On sidewalk
+      lamp.z = posZ;
+      lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+      lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+      lamp.isWorking = (rand() % 100) < 65;
+      block.lampIndices.push_back(streetLamps.size());
+      streetLamps.push_back(lamp);
+    } else {
+      // Tree inside block - check for collision with buildings
+      double treeX = block.worldX + blockSize - sidewalkWidth - innerMargin;
+      double treeZ = posZ;
+      
+      bool tooCloseToBuilding = false;
+      for (const auto& building : candidates) {
+        double dx = treeX - building.x;
+        double dz = treeZ - building.z;
+        double distance = sqrt(dx*dx + dz*dz);
+        double maxDim = fmax(building.width, building.depth);
+        
+        if (distance < maxDim + minTreeDistance) {
+          tooCloseToBuilding = true;
+          break;
+        }
+      }
+      
+      if (!tooCloseToBuilding) {
+        Tree tree;
+        tree.x = treeX;
+        tree.z = treeZ;
+        tree.height = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
+        tree.scale = 1.0f + (rand() / float(RAND_MAX)) * 0.5f;
+        tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+        tree.leavesR = 0.08f + (rand() / float(RAND_MAX)) * 0.05f;
+        tree.leavesG = 0.12f + (rand() / float(RAND_MAX)) * 0.08f;
+        tree.leavesB = 0.06f + (rand() / float(RAND_MAX)) * 0.04f;
+        int treeTypeRoll = rand() % 3;
+        tree.type = (treeTypeRoll == 0) ? TREE_LAYERED : (treeTypeRoll == 1) ? TREE_DEAD : TREE_TWISTED;
+        trees.push_back(tree);
+      }
+    }
   }
 }
 
@@ -254,6 +519,9 @@ void generateParkBlock(CityBlock& block) {
     block.lampIndices.push_back(streetLamps.size());
     streetLamps.push_back(lamp);
   }
+  
+  // Add sidewalk lamps around block perimeter
+  addSidewalkLamps(block);
 }
 
 // ============================================================================
@@ -264,22 +532,28 @@ void generateIndustrialBlock(CityBlock& block) {
   // 1-2 large warehouse buildings
   int numWarehouses = 1 + (rand() % 2);
   
+  // Calculate safe boundaries accounting for fences
+  double fenceMargin = blockSize * 0.1;  // Fence position
+  
   for (int i = 0; i < numWarehouses; i++) {
     Building b;
     
-    // Warehouses are large and boxy
-    b.width = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
-    b.depth = 6.0 + (rand() / double(RAND_MAX)) * 6.0;
-    b.height = 10.0 + (rand() / double(RAND_MAX)) * 8.0;
+    // Smaller warehouses to fit within fenced area
+    // Max building dimension should be less than (blockSize - 2*safeMargin)
+    b.width = 4.0 + (rand() / double(RAND_MAX)) * 3.0;   // 4-7 units (was 6-12)
+    b.depth = 4.0 + (rand() / double(RAND_MAX)) * 3.0;   // 4-7 units (was 6-12)
+    b.height = 10.0 + (rand() / double(RAND_MAX)) * 8.0; // Height unchanged
     
     // Grid-aligned rotation
     b.rotation = (rand() % 4) * 90.0;
     
-    // Position with spacing
+    // Position with spacing, keeping well inside fence boundaries
     if (numWarehouses == 1) {
+      // Center the single warehouse
       b.x = block.worldX + blockSize / 2.0;
       b.z = block.worldZ + blockSize / 2.0;
     } else {
+      // Position two warehouses with spacing
       if (i == 0) {
         b.x = block.worldX + blockSize * 0.35;
         b.z = block.worldZ + blockSize / 2.0;
@@ -321,8 +595,7 @@ void generateIndustrialBlock(CityBlock& block) {
     smokestacks.push_back(stack);
   }
   
-  // Add chain-link fence around perimeter
-  double fenceMargin = blockSize * 0.1;
+  // Add chain-link fence around perimeter (reuse fenceMargin from above)
   double fenceHeight = 3.0;
   
   Fence northFence;
@@ -378,6 +651,9 @@ void generateIndustrialBlock(CityBlock& block) {
     block.lampIndices.push_back(streetLamps.size());
     streetLamps.push_back(lamp);
   }
+  
+  // Add sidewalk lamps around block perimeter
+  addSidewalkLamps(block);
 }
 
 // ============================================================================
@@ -529,9 +805,7 @@ void generateGraveyardBlock(CityBlock& block) {
   westFence.height = fenceHeight;
   fences.push_back(westFence);
   
-  // Very minimal lighting (super dark)
-  int numLights = 1;
-  
+  // Very minimal lighting (super dark) - single entrance lamp
   StreetLamp lamp;
   lamp.x = block.worldX + blockSize / 2.0;
   lamp.z = block.worldZ + blockSize * 0.1;  // Near front edge
@@ -541,6 +815,112 @@ void generateGraveyardBlock(CityBlock& block) {
   
   block.lampIndices.push_back(streetLamps.size());
   streetLamps.push_back(lamp);
+  
+  // Add sidewalk lamps around block perimeter
+  addSidewalkLamps(block);
+}
+
+// ============================================================================
+// FOREST BLOCK GENERATION
+// ============================================================================
+
+void generateForestBlock(CityBlock& block) {
+  double forestCenterX = block.worldX + blockSize / 2.0;
+  double forestCenterZ = block.worldZ + blockSize / 2.0;
+  
+  // Dense forest with 15-20 trees of all types
+  int numTrees = 15 + (rand() % 6);
+  
+  for (int i = 0; i < numTrees; i++) {
+    Tree tree;
+    
+    // Distribute trees throughout the block with some clustering
+    // Use a mix of random and semi-grid positioning for natural look
+    if (i < 8) {
+      // First 8 trees: scattered throughout with good coverage
+      double angle = (i / 8.0) * 2.0 * M_PI + (rand() / double(RAND_MAX) - 0.5) * 1.0;
+      double distance = (rand() / double(RAND_MAX)) * blockSize * 0.35;
+      tree.x = forestCenterX + cos(angle) * distance;
+      tree.z = forestCenterZ + sin(angle) * distance;
+    } else {
+      // Remaining trees: fill in gaps randomly
+      tree.x = block.worldX + 3.0 + (rand() / double(RAND_MAX)) * (blockSize - 6.0);
+      tree.z = block.worldZ + 3.0 + (rand() / double(RAND_MAX)) * (blockSize - 6.0);
+    }
+    
+    // Varied tree heights for a natural forest canopy
+    tree.height = 5.0 + (rand() / double(RAND_MAX)) * 8.0;  // 5-13 units
+    tree.scale = 0.8f + (rand() / float(RAND_MAX)) * 1.0f;  // 0.8-1.8 scale
+    
+    // Mix of healthy and dead-looking trees for horror atmosphere
+    int healthRoll = rand() % 100;
+    if (healthRoll < 30) {
+      // Healthy darker green trees (30%)
+      tree.trunkR = 0.12f + (rand() / float(RAND_MAX)) * 0.06f;
+      tree.trunkG = 0.10f + (rand() / float(RAND_MAX)) * 0.06f;
+      tree.trunkB = 0.08f + (rand() / float(RAND_MAX)) * 0.04f;
+      
+      tree.leavesR = 0.10f + (rand() / float(RAND_MAX)) * 0.08f;
+      tree.leavesG = 0.18f + (rand() / float(RAND_MAX)) * 0.10f;
+      tree.leavesB = 0.08f + (rand() / float(RAND_MAX)) * 0.06f;
+    } else if (healthRoll < 70) {
+      // Sickly/dying trees (40%)
+      tree.trunkR = 0.14f + (rand() / float(RAND_MAX)) * 0.04f;
+      tree.trunkG = 0.12f + (rand() / float(RAND_MAX)) * 0.04f;
+      tree.trunkB = 0.10f + (rand() / float(RAND_MAX)) * 0.03f;
+      
+      tree.leavesR = 0.12f + (rand() / float(RAND_MAX)) * 0.04f;
+      tree.leavesG = 0.14f + (rand() / float(RAND_MAX)) * 0.04f;
+      tree.leavesB = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+    } else {
+      // Dead/skeletal trees (30%)
+      tree.trunkR = 0.10f + (rand() / float(RAND_MAX)) * 0.04f;
+      tree.trunkG = 0.08f + (rand() / float(RAND_MAX)) * 0.03f;
+      tree.trunkB = 0.06f + (rand() / float(RAND_MAX)) * 0.02f;
+      
+      tree.leavesR = 0.06f;
+      tree.leavesG = 0.06f;
+      tree.leavesB = 0.06f;
+    }
+    
+    // Equal distribution of all three tree types
+    int treeTypeRoll = rand() % 3;
+    if (treeTypeRoll == 0) {
+      tree.type = TREE_LAYERED;
+    } else if (treeTypeRoll == 1) {
+      tree.type = TREE_DEAD;
+    } else {
+      tree.type = TREE_TWISTED;
+    }
+    
+    trees.push_back(tree);
+  }
+  
+  // Add minimal atmospheric lighting - just a couple broken lamps
+  int numLights = 1 + (rand() % 2);  // 1-2 lamps total
+  
+  for (int i = 0; i < numLights; i++) {
+    StreetLamp lamp;
+    
+    // Position near edges
+    if (i == 0) {
+      lamp.x = block.worldX + blockSize * 0.2;
+      lamp.z = block.worldZ + blockSize * 0.2;
+    } else {
+      lamp.x = block.worldX + blockSize * 0.8;
+      lamp.z = block.worldZ + blockSize * 0.8;
+    }
+    
+    lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
+    lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
+    lamp.isWorking = (rand() % 100) < 25;  // Only 25% working - very dark forest!
+    
+    block.lampIndices.push_back(streetLamps.size());
+    streetLamps.push_back(lamp);
+  }
+  
+  // Add sidewalk lamps around block perimeter
+  addSidewalkLamps(block);
 }
 
 // ============================================================================
@@ -567,25 +947,70 @@ void initializeCityGrid() {
       
       gridToWorld(gx, gz, block.worldX, block.worldZ);
       
-      // Skip center blocks for player spawn area
-      if (abs(gx) <= 1 && abs(gz) <= 1) {
+      // Showcase blocks near spawn - statically place one of each type for demonstration
+      // Center 3x3 grid: player spawn (0,0) surrounded by example blocks
+      if (gx == -1 && gz == -1) {
+        // Northwest: Building block
+        block.type = BLOCK_BUILDING;
+        generateBuildingBlock(block);
+      }
+      else if (gx == 0 && gz == -1) {
+        // North: Park block
+        block.type = BLOCK_PARK;
+        generateParkBlock(block);
+      }
+      else if (gx == 1 && gz == -1) {
+        // Northeast: Industrial block
+        block.type = BLOCK_INDUSTRIAL;
+        generateIndustrialBlock(block);
+      }
+      else if (gx == -1 && gz == 0) {
+        // West: Graveyard block
+        block.type = BLOCK_GRAVEYARD;
+        generateGraveyardBlock(block);
+      }
+      else if (gx == 0 && gz == 0) {
+        // Center: Player spawn - empty
         block.type = BLOCK_EMPTY;
-      } 
+      }
+      else if (gx == 1 && gz == 0) {
+        // East: Forest block
+        block.type = BLOCK_FOREST;
+        generateForestBlock(block);
+      }
+      else if (gx == -1 && gz == 1) {
+        // Southwest: Building block (second example)
+        block.type = BLOCK_BUILDING;
+        generateBuildingBlock(block);
+      }
+      else if (gx == 0 && gz == 1) {
+        // South: Park block (second example)
+        block.type = BLOCK_PARK;
+        generateParkBlock(block);
+      }
+      else if (gx == 1 && gz == 1) {
+        // Southeast: Empty (for breathing room)
+        block.type = BLOCK_EMPTY;
+      }
       else {
-        // Block distribution: 55% buildings, 20% parks, 15% industrial, 10% graveyards
+        // All other blocks: random distribution
+        // Block distribution: 50% buildings, 15% parks, 15% industrial, 10% graveyards, 10% forest
         int roll = rand() % 100;
-        if (roll < 55) {
+        if (roll < 50) {
           block.type = BLOCK_BUILDING;
           generateBuildingBlock(block);
-        } else if (roll < 75) {
+        } else if (roll < 65) {
           block.type = BLOCK_PARK;
           generateParkBlock(block);
-        } else if (roll < 90) {
+        } else if (roll < 80) {
           block.type = BLOCK_INDUSTRIAL;
           generateIndustrialBlock(block);
-        } else {
+        } else if (roll < 90) {
           block.type = BLOCK_GRAVEYARD;
           generateGraveyardBlock(block);
+        } else {
+          block.type = BLOCK_FOREST;
+          generateForestBlock(block);
         }
       }
       
@@ -608,62 +1033,10 @@ void initializeCityGrid() {
 // ============================================================================
 
 void generateRoadLights() {
-  // Note: Park lights are generated within generateParkBlock()
-  // This function only handles street/road lighting
-  
-  int halfGrid = cityGridSize / 2;
-  int totalBlockSize = blockSize + roadWidth;
-  int lampSpacing = 12;
-  
-  // Generate lamps along horizontal roads
-  for (int gx = -halfGrid; gx <= halfGrid + 1; gx++) {
-    double roadCenterX = gx * totalBlockSize - roadWidth / 2.0;
-    
-    for (int gz = -halfGrid; gz <= halfGrid; gz++) {
-      double blockWorldZ = gz * totalBlockSize;
-      
-      // Place lamps along road segment
-      for (int offset = 0; offset < blockSize; offset += lampSpacing) {
-        // Lamps on both sides of the road
-        for (int side = -1; side <= 1; side += 2) {
-          StreetLamp lamp;
-          lamp.x = roadCenterX + side * (roadWidth / 2.5);
-          lamp.z = blockWorldZ + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
-          lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
-          lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-          lamp.isWorking = (rand() % 100) < 65;  // 65% working, 35% broken
-          
-          streetLamps.push_back(lamp);
-        }
-      }
-    }
-  }
-  
-  // Generate lamps along vertical roads
-  for (int gz = -halfGrid; gz <= halfGrid + 1; gz++) {
-    double roadCenterZ = gz * totalBlockSize - roadWidth / 2.0;
-    
-    for (int gx = -halfGrid; gx <= halfGrid; gx++) {
-      double blockWorldX = gx * totalBlockSize;
-      
-      // Place lamps along road segment
-      for (int offset = 0; offset < blockSize; offset += lampSpacing) {
-        // Lamps on both sides of the road
-        for (int side = -1; side <= 1; side += 2) {
-          StreetLamp lamp;
-          lamp.x = blockWorldX + offset + (rand() / double(RAND_MAX) - 0.5) * 2.0;
-          lamp.z = roadCenterZ + side * (roadWidth / 2.5);
-          lamp.height = 5.0 + (rand() / double(RAND_MAX)) * 1.5;
-          lamp.flickerPhase = (rand() / double(RAND_MAX)) * 6.28;
-          lamp.isWorking = (rand() % 100) < 65;
-          
-          streetLamps.push_back(lamp);
-        }
-      }
-    }
-  }
-  
-  std::cout << "Generated " << streetLamps.size() << " total lamps (streets + parks)" << std::endl;
+  // Street lamps and trees are now generated within each block's generation function
+  // This function is kept for compatibility but does nothing
+  std::cout << "Street lamps and trees generated within individual blocks" << std::endl;
+  std::cout << "Total lamps: " << streetLamps.size() << std::endl;
 }
 
 // ============================================================================

@@ -83,7 +83,8 @@ enum BlockType {
   BLOCK_PARK = 2,
   BLOCK_PLAZA = 3,
   BLOCK_INDUSTRIAL = 4,
-  BLOCK_GRAVEYARD = 5
+  BLOCK_GRAVEYARD = 5,
+  BLOCK_FOREST = 6
 };
 
 // Tree types for visual variety
@@ -194,6 +195,37 @@ extern std::vector<Gravestone> gravestones;
 extern std::vector<Mausoleum> mausoleums;
 
 // ============================================================================
+// TEXTURE SYSTEM
+// ============================================================================
+
+// Texture IDs - Building and Ground
+extern GLuint brickTexture;
+extern GLuint concreteTexture;
+extern GLuint roadTexture;
+extern GLuint sidewalkTexture;
+extern GLuint groundTexture;
+
+// Texture IDs - Nature
+extern GLuint leavesTexture;
+extern GLuint barkTexture;
+
+// Texture IDs - Metal and Lights
+extern GLuint metalTexture;
+extern GLuint lightTexture;
+extern GLuint lampGlowTexture;
+
+// Texture IDs - Road Markings
+extern GLuint roadStripesTexture;
+
+// Texture IDs - Structures
+extern GLuint fenceTexture;
+extern GLuint gravestoneTexture;
+
+// Texture loading
+void initializeTextures();
+GLuint loadTexturePNG(const char* filename);
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
@@ -213,6 +245,7 @@ void generateBuildingBlock(CityBlock& block);
 void generateParkBlock(CityBlock& block);
 void generateIndustrialBlock(CityBlock& block);
 void generateGraveyardBlock(CityBlock& block);
+void generateForestBlock(CityBlock& block);
 void generateRoadLights();
 void initializeAmbientObjects();
 void initializeFog();
@@ -238,6 +271,7 @@ void drawGravestone(const Gravestone& stone);
 void drawMausoleum(const Mausoleum& mausoleum);
 void drawGroundPlane();
 void drawRoads();
+void drawCityBlockSidewalks();
 void drawSky();
 
 // PS1 visual effects
