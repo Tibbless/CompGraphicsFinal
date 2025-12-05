@@ -135,108 +135,56 @@ void display() {
   Print("  Shift+D - Toggle dither effect");
   
   glRasterPos2f(10, 205);
-  Print("Other:");
+  Print("Teleports:");
   
   glRasterPos2f(10, 220);
-  Print("  R - Reset position");
+  Print("  1 - Building  2 - Park  3 - Industrial");
   
   glRasterPos2f(10, 235);
+  Print("  4 - Graveyard  5 - Forest  0 - Origin");
+  
+  glRasterPos2f(10, 255);
+  Print("Other:");
+  
+  glRasterPos2f(10, 270);
+  Print("  R - Reset position");
+  
+  glRasterPos2f(10, 285);
   Print("  ESC - Exit");
   
   // Display player stats
-  glRasterPos2f(10, 260);
+  glRasterPos2f(10, 310);
   std::ostringstream pos;
   pos << std::fixed << std::setprecision(1);
   pos << "Position: (" << playerX << ", " << playerZ << ")";
   Print(pos.str());
   
-  glRasterPos2f(10, 275);
+  glRasterPos2f(10, 325);
   std::ostringstream angle;
   angle << std::fixed << std::setprecision(0);
   angle << "Facing: " << playerAngle << " degrees";
   Print(angle.str());
   
-  glRasterPos2f(10, 290);
+  glRasterPos2f(10, 340);
   std::ostringstream time;
   time << std::fixed << std::setprecision(1);
   time << "Time: " << timeOfDay << ":00 (Night)";
   Print(time.str());
   
-  glRasterPos2f(10, 305);
+  glRasterPos2f(10, 355);
   std::ostringstream effects;
-  effects << "Dither: " << (ditherEnabled ? "ON" : "OFF") 
-          << " | Noise: " << (int)(noiseAmount * 100) << "%"
-          << " | Flicker: " << (int)(flickerIntensity * 100) << "%";
+  effects << "Dither: " << (ditherEnabled ? "ON" : "OFF");
   Print(effects.str());
   
-  glRasterPos2f(10, 320);
-  std::ostringstream objects;
-  objects << "City: " << cityBlocks.size() << " blocks, "
-          << buildings.size() << " buildings, " 
-          << streetLamps.size() << " lamps, "
-          << smokestacks.size() << " stacks, "
-          << gravestones.size() << " graves";
-  Print(objects.str());
-  
-  // Draw vignette effect for horror atmosphere
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  
-  // Top edge gradient
-  glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
-  glVertex2f(0, 0);
-  glVertex2f(width, 0);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width, height * 0.2f);
-  glVertex2f(0, height * 0.2f);
-  glEnd();
-  
-  // Bottom edge gradient
-  glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(0, height * 0.8f);
-  glVertex2f(width, height * 0.8f);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
-  glVertex2f(width, height);
-  glVertex2f(0, height);
-  glEnd();
-  
-  // Left edge gradient
-  glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-  glVertex2f(0, 0);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width * 0.15f, 0);
-  glVertex2f(width * 0.15f, height);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-  glVertex2f(0, height);
-  glEnd();
-  
-  // Right edge gradient
-  glBegin(GL_QUADS);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width * 0.85f, 0);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-  glVertex2f(width, 0);
-  glVertex2f(width, height);
-  glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-  glVertex2f(width * 0.85f, height);
-  glEnd();
-  
-  glDisable(GL_BLEND);
-  
-  // Restore 3D projection
-  glPopMatrix();
+  // Restore matrices
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
   
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_LIGHTING);
   
-  ErrCheck("display");
-  glFlush();
   glutSwapBuffers();
 }
 
@@ -245,11 +193,16 @@ void display() {
 // ============================================================================
 
 void reshape(int width, int height) {
+  if (height == 0) height = 1;
+  
   glViewport(0, 0, width, height);
+  
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   
-  double aspect = (height > 0) ? static_cast<double>(width) / height : 1.0;
+  double fov = 60.0;
+  double aspect = (height > 0) ? 
+    static_cast<double>(width) / height : 1.0;
   gluPerspective(fov, aspect, 0.1, 500.0);
   
   glMatrixMode(GL_MODELVIEW);
@@ -371,6 +324,85 @@ void key(unsigned char ch, int /*x*/, int /*y*/) {
     case 'v':
     case 'V':
       // Toggle vertical sync placeholder
+      break;
+      
+    // Teleport to Building District
+    case '1':
+      for (const auto& block : cityBlocks) {
+        if (block.type == BLOCK_BUILDING && (block.gridX != 0 || block.gridZ != 0)) {
+          // Place player on south side (outside the block, in the road)
+          playerX = block.worldX + blockSize / 2.0;
+          playerZ = block.worldZ + blockSize + 5.0;  // 5 units into the road
+          playerAngle = 0.0;  // Face north into the block
+          std::cout << "Teleported to Building District at grid (" << block.gridX << ", " << block.gridZ << ")" << std::endl;
+          break;
+        }
+      }
+      break;
+      
+    // Teleport to Park Block
+    case '2':
+      for (const auto& block : cityBlocks) {
+        if (block.type == BLOCK_PARK && (block.gridX != 0 || block.gridZ != 0)) {
+          // Place player on south side (outside the block, in the road)
+          playerX = block.worldX + blockSize / 2.0;
+          playerZ = block.worldZ + blockSize + 5.0;  // 5 units into the road
+          playerAngle = 0.0;  // Face north into the block
+          std::cout << "Teleported to Park Block at grid (" << block.gridX << ", " << block.gridZ << ")" << std::endl;
+          break;
+        }
+      }
+      break;
+      
+    // Teleport to Industrial Zone
+    case '3':
+      for (const auto& block : cityBlocks) {
+        if (block.type == BLOCK_INDUSTRIAL && (block.gridX != 0 || block.gridZ != 0)) {
+          // Place player on south side (outside the block, in the road)
+          playerX = block.worldX + blockSize / 2.0;
+          playerZ = block.worldZ + blockSize + 5.0;  // 5 units into the road
+          playerAngle = 0.0;  // Face north into the block
+          std::cout << "Teleported to Industrial Zone at grid (" << block.gridX << ", " << block.gridZ << ")" << std::endl;
+          break;
+        }
+      }
+      break;
+      
+    // Teleport to Graveyard
+    case '4':
+      for (const auto& block : cityBlocks) {
+        if (block.type == BLOCK_GRAVEYARD && (block.gridX != 0 || block.gridZ != 0)) {
+          // Place player on south side (outside the block, in the road)
+          playerX = block.worldX + blockSize / 2.0;
+          playerZ = block.worldZ + blockSize + 5.0;  // 5 units into the road
+          playerAngle = 0.0;  // Face north into the block
+          std::cout << "Teleported to Graveyard at grid (" << block.gridX << ", " << block.gridZ << ")" << std::endl;
+          break;
+        }
+      }
+      break;
+      
+    // Teleport to Forest Block
+    case '5':
+      for (const auto& block : cityBlocks) {
+        if (block.type == BLOCK_FOREST && (block.gridX != 0 || block.gridZ != 0)) {
+          // Place player on south side (outside the block, in the road)
+          playerX = block.worldX + blockSize / 2.0;
+          playerZ = block.worldZ + blockSize + 5.0;  // 5 units into the road
+          playerAngle = 0.0;  // Face north into the block
+          std::cout << "Teleported to Forest Block at grid (" << block.gridX << ", " << block.gridZ << ")" << std::endl;
+          break;
+        }
+      }
+      break;
+      
+    // Return to origin
+    case '0':
+      playerX = 0.0;
+      playerZ = 0.0;
+      playerAngle = 0.0;
+      playerPitch = 0.0;
+      std::cout << "Teleported to Origin (0, 0)" << std::endl;
       break;
   }
   
